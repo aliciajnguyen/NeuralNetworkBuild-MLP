@@ -1,8 +1,7 @@
 import numpy as np
-import ActivationFunctions as af
 import GradientDescent as gd
 import Utilities as u
-
+import Layer as l
 
 class MLP:
     
@@ -10,65 +9,92 @@ class MLP:
     #numbre of hidden layers (eg 2)
     #numbre of hidden units in hidden layers
     #initialize weights and biases
-    #just keep defaults for eg for now (we have logistic as all functions just this is how mlp tutorial done)
     #also def loss function here depending on selection of output layer
-    def __init__(self, M = 64, parameter_init_type = "random", num_hidden_layers=1, hidden_activation_function = af.logistic, output_activation_function = af.logistic):
-        self.M = M #number of hidden units in hidden layers (width)
-        #self.D = D #num of "features" which will be pixel given out P3 dataset?  / number of inputs x_D ? 
-        
-        #layers
-        self.num_hidden_layers = num_hidden_layers #does not include number of input or output layers
-        self.hidden_activation_function = hidden_activation_function
-        self.output_activation_function = output_activation_function
+    #note if that hidden activation func list is empty, no hidden layers constructed
+    def __init__(self, M, D, C, hidden_activation_func_list, output_activation_func, parameter_init_type = "RANDOM"):
+        self.M = M     # M =number of hidden units in hidden layers (width)
+        self.D = D     # D inputs (number of x inputs) CONFUSION WITH N
+        self.C = C          #C outputs (number of classes)        
 
-        #instead just represent as a list or array of Layer objects, that last will be out output
-        
 
-        self.hidden_layers= self.hidden_layers(num_hidden_layers, hidden_activation_function) #LIST of hidden activation functions: change later to incor mult inner activations, so we can adjust depth
-        self.w, self.v = self.initialize_parameters(parameter_init_type)
-        #self.learned_params  #what we learn using gradient descent in fit function
+        #list of represent all layers in mlp
+        self.layers = self.create_layers(hidden_activation_func_list, output_activation_func)
+                 
+        #TODO def loss function here based on output layer ? or pass to layer
+
+        #W dim = C X M
+        #V dim = M x D  - np weird ordering in matrix creation careful
+        self.W, self.V = self.initialize_parameters(parameter_init_type)
+
+        #OBJECT ATTRIBUTES LATER COMPUTED
+        #self.depth_hidden_layers  = the depth (just the number of hidden layers NOT incl output layer)
+        #self.learned_params  #what we learn using gradient descent in fit function IF WE DON'T DO STOCHASTIC
 
     #initialize the weights in the constructor according to intialization type (parameter to tune)
     def initialize_parameters(self, init_type):
         #initialization of weights - hard coded to randomize or set to 0 but this is HP to tune
-        if init_type == "random":
-            w = np.random.randn(self.M) * .01 #out of func intiialize weights and store initial versions
-            v = np.random.randn(self.D,self.M) * .01
-        elif init_type == "zero":
-            w = np.zeros(self.M) 
-            v = np.zeros(self.D,self.M)
-        return w,v    
+        if init_type == "RANDOM":
+            W = np.random.randn(self.M, self.C) * .01 #out of func intiialize weights and store initial versions
+            V = np.random.randn(self.D,self.M) * .01
+        elif init_type == "ZERO":
+            W = np.zeros(self.M, self.C) 
+            V = np.zeros(self.D,self.M)
+        return W,V    
 
     #TODO def a function for telling constructor how many hidden layers / what they are
     #later can extend if we want diff output functions at different layers
     #return a list of hidden layer functions
-    def hidden_layers(self, num_hidden_layers, hidden_activation_function):
-        list_hidden_layers = []
-        for i in range(num_hidden_layers):
-            list_hidden_layers.append(hidden_activation_function)
-        return list_hidden_layers
 
-    #compute input through multiple functions, as multiplied with the weight parameters
-    #will have to generalize this when I understand backprop more
-    def forward_pass(self, x , v , w):
-        #first hidden layer gets V as parameters
-        z = hid_layer_func(np.dot(x, v))
-        #compute rest of hidden layers
-        for i, hid_layer_func in enumerate(self.hidden_layers):
-            if i == 0: continue             #skip first hidden layer because special parameters (see above)
-            z = hid_layer_func(np.dot(z, v))
-        yh = self.output_activation_function(np.dot(z, w))
-        return yh
+    #create layer list here for model
+    #called in class intializer
+    #if there are not hidden layers I thiiink this should work, TODO test for no HL case (Task 3.1) I think just log regr
+    def create_layers(self, hidden_activation_func_list, output_activation_func):
 
+        #compute the depth (just the number of hidden layers NOT incl output layer)
+        self.depth_hidden_layers=len(hidden_activation_func_list)
+
+        #append the output activation func for ease
+        hidden_activation_func_list.append(output_activation_func)
+
+        #add each hidden layer
+        #TODO might have to change this if we use decorator for layers
+        hidden_layers_list = []
+        for i, activation_function in enumerate(hidden_activation_func_list):
+            isFirst = True if i == 0 else False
+            weights = self.V if i == 0 else self.W
+            isLast = True if i == len(hidden_activation_func_list)-1 else False
+            layer = l.Layer(weights, activation_function, isFirstLayer=isFirst, isLastLayer=isLast)
+            hidden_layers_list.append(layer)
+
+        return hidden_layers_list
+
+    #Compute forward pass
+    #parameters stored in layer object as needed
+    #here I passed the parameterse to the forward_pass func directly rather than the model object
+    #   incase we want to play around w stochastic vs full batch gradient descent
+    def forward_pass(self, X , V , W):
+
+        #scope in python is a function!
+        for i,layer in enumerate(self.layers):
+            input = X if i == 0 else z # X will be first layer input, otherwise it's the output, z, of last layer
+            z = layer.get_output(input)
+            yh = z # last value computed is yh, rename for consistency
+            return yh
+
+    #TODO : confused about when we're running GD? 
     def fit(self, x, y, optimizer): #optimizer is GD in our case
-        N,D = x.shape
+        N,D = x.shape #TODO sus out the actual dimension of D here
         self.N = N
-        self.D = D
 
+     
         #why tf is gradient defined here? : so this func has access to outter variables
         def gradient(x, y, params): #computes grad of loss wrt dparams ?
             v, w = params
             
+            #TODO: ask in OH
+            #I think we'll just forward pass once
+            #and then backward pass until stop cond for stochastic GD
+
             #FORWARD
             ################################
             z = af.logistic(np.dot(x, v)) #N x M #forward pass
@@ -88,12 +114,9 @@ class MLP:
             ################################
             return dparams
         
-        #the intial weights + TODO biases
+        #the intial weights + TODO biases ? cur initialized in run
         w = self.w
         v = self.v
-
-        #first back prop pass?
-
         params0 = [v,w]
 
         #optimizer here is gd, passed to the fit function
@@ -102,11 +125,11 @@ class MLP:
         #returns optimized parameters
         return self
     
-
-    def predict(self, x): #just a function
-        v, w = self.learned_params
-        #z = logistic(np.dot(x, v)) #N x M
-        #yh = logistic(np.dot(z, w))#N
-        yh = self.forward_pass(x , v , w)
-
-        return yh
+    #We've just built a function!
+    #TODO ADD learned biases too
+    #   shouldn't actually be necc to save v, w sepately if using stochastic GD
+    #   but I'll keep it for now if we want to play around
+    def predict(self, X): 
+        Vlearned, Wlearned = self.learned_params
+        yh = self.forward_pass(X , Vlearned, Wlearned)
+        return yh #should be dim N
