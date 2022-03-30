@@ -32,8 +32,6 @@ def experiment1():
     # fit model (no backprop now)
     model1.fit(x)
 
-
-#TODO
 def experiment2():
     #data
     # D = 2 , N = 2
@@ -59,14 +57,32 @@ def experiment2():
     # fit model (no backprop now)
     model1.fit(x)
 
-    #predict on model
+def experiment3():
+    #data
+    # D = 2 , N = 2
+    x = np.array([[1, 2], [3, 4], [5, 6]]) #each row is an input, so each inner bracket []
+    y = np.array([1, 0, 2])
+
+    # N = #
+    # M =3
+    # C =3
+    # 2 hidden unit layer = both Relu
+    # output layer = softmax
+
+    #define parameters for model
+    hidlayer_activfunc_list3 = []
+    hidlayer_activfunc_list3.append(u.reLu)
+    hidlayer_activfunc_list3.append(u.reLu)
+
+    output_activation = u.softmax
+
+    #create model object
+    #note have to figure out D value from X.shape
+    #model1 = model.MLP(M, D, C, hidden_activation_func_list, output_activation_func, parameter_init_type = "RANDOM")
+    model1 = model.MLP(M=2, D=2, C=3, hidden_activation_func_list=hidlayer_activfunc_list3, output_activation_func=output_activation)
+
+    # fit model (no backprop now)
+    model1.fit(x)
 
 
-
-experiment2()
-
-
-    #1-D array
-    #array_1 = np.array([1, 2, 3])
-    #2-D array
-    #array_2 = np.array(([1, 2, 3], [4, 5, 6], [7, 8, 9]))
+experiment3()

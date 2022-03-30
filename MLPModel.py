@@ -21,20 +21,23 @@ class MLP:
 
         #W dim = C X M
         #V dim = M x D  - np weird ordering in matrix creation careful
-        self.V, self.W, self.bw, self.blast = self.initialize_parameters(parameter_init_type)
+        #self.V, self.W, self.bw, self.blast = self.initialize_parameters(parameter_init_type)
+        self.V, self.W = self.initialize_parameters(parameter_init_type)
+
 
         #list of represent all layers in mlp
         self.layers = self.create_layers(hidden_activation_func_list, output_activation_func)
                  
-        #TODO def loss function here based on output layer ? or pass to layer
-
+        self.activations = [] #a list of activations
+        # computed for every activation function layer and linear transformation layer (edge)
 
         #OBJECT ATTRIBUTES LATER COMPUTED
         #self.depth_hidden_layers  = the depth (just the number of hidden layers NOT incl output layer)
         #self.learned_params  #what we learn using gradient descent in fit function IF WE DON'T DO STOCHASTIC
         #self.N  = the number of training instances fit to
         
-
+        
+            
     #initialize the weights in the constructor according to intialization type (parameter to tune)
     def initialize_parameters(self, init_type):
         #initialization of weights - hard coded to randomize or set to 0 but this is HP to tune
@@ -42,12 +45,15 @@ class MLP:
             #note extra col for BIAS 
             V = np.random.randn(self.D+1,self.M) * .01
             W = np.random.randn(self.M+1, self.C) * .01 #out of func intiialize weights and store initial versions
-            bw = np.random.randn(self.M) * .01
+
+            #I think biases are actually just best incorm in X and W (extra dim)
+            #bw = np.random.randn(self.M) * .01
             #TODO biases of last layer will be related to C?
-            blast = np.random.randn(self.C) * .01
+            #blast = np.random.randn(self.C) * .01
+
         #elif init_type == "ZERO":
         #put other paramater intiialization here
-        return V, W, bw, blast    
+        return V, W  #, bw, blast    
 
     #create layer list here for model
     #called in class intializer
@@ -56,16 +62,20 @@ class MLP:
     def create_layers(self, hidden_activation_func_list, output_activation_func):
         #list of all layers
         layers_list = []
-        #create first layer and add to list
-        layers_list.append(l.InputEdge(self.V, self.bw))
 
-        #create hidden layers: list size passed determines numbre of hidden layers
-        #if it's the last index before the output func, bias vector size will be different
+        #create first layer and add to list
+        layers_list.append(l.InputEdge(self.V))
+
+        #create hidden layers: length of passed activation funcs determines numbre of hidden layers
+        #if it's the last index before the output func, weight matrix diff dimensions
         last_index = len(hidden_activation_func_list)-1
         for index, activation_function in enumerate(hidden_activation_func_list):
-            bias = self.bw if index != last_index else self.blast
-            hid_layer = l.HiddenLayer(self.W, bias, activation_function)
+            weights = self.V if index != last_index else self.W
+            hid_layer = l.HiddenLayer(activation_function)
             layers_list.append(hid_layer)
+            hid_edge = l.Edge(weights)
+            layers_list.append(hid_edge)
+
         #create output layer
         layers_list.append(l.OutputLayer(output_activation_func))
         return layers_list
@@ -78,6 +88,7 @@ class MLP:
         #scope in python is a function!
         for i,layer in enumerate(self.layers):
             input = X if i == 0 else z # X will be first layer input, otherwise it's the output, z, of last layer
+            self.activations.append(input) #possible bug appending X but I don't think it'll matter
             z = layer.get_output(input)
         yh = z # last value computed is yh, rename for consistency
         return yh
