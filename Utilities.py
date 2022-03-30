@@ -22,7 +22,7 @@ def softmax(x):
 
 #activation function (for final layer) binary classification
 def logistic(x):
-    return 1./ (1 + np.exp(-x))
+    return 1./ (1. + np.exp(-x))
 
 
 

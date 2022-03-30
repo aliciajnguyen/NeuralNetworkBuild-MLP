@@ -1,7 +1,9 @@
 import numpy as np
 import GradientDescent as gd
 import Utilities as u
-import Layer as l
+import Layers as l
+np.random.seed(1234)
+
 
 class MLP:
     
@@ -13,114 +15,88 @@ class MLP:
     #note if that hidden activation func list is empty, no hidden layers constructed
     def __init__(self, M, D, C, hidden_activation_func_list, output_activation_func, parameter_init_type = "RANDOM"):
         self.M = M     # M =number of hidden units in hidden layers (width)
+        self.C = C     # C outputs (number of classes)        
         self.D = D     # D inputs (number of x inputs) CONFUSION WITH N
-        self.C = C          #C outputs (number of classes)        
+       
 
+        #W dim = C X M
+        #V dim = M x D  - np weird ordering in matrix creation careful
+        self.V, self.W, self.bw, self.blast = self.initialize_parameters(parameter_init_type)
 
         #list of represent all layers in mlp
         self.layers = self.create_layers(hidden_activation_func_list, output_activation_func)
                  
         #TODO def loss function here based on output layer ? or pass to layer
 
-        #W dim = C X M
-        #V dim = M x D  - np weird ordering in matrix creation careful
-        self.W, self.V = self.initialize_parameters(parameter_init_type)
 
         #OBJECT ATTRIBUTES LATER COMPUTED
         #self.depth_hidden_layers  = the depth (just the number of hidden layers NOT incl output layer)
         #self.learned_params  #what we learn using gradient descent in fit function IF WE DON'T DO STOCHASTIC
+        #self.N  = the number of training instances fit to
+        
 
     #initialize the weights in the constructor according to intialization type (parameter to tune)
     def initialize_parameters(self, init_type):
         #initialization of weights - hard coded to randomize or set to 0 but this is HP to tune
         if init_type == "RANDOM":
-            W = np.random.randn(self.M, self.C) * .01 #out of func intiialize weights and store initial versions
-            V = np.random.randn(self.D,self.M) * .01
-        elif init_type == "ZERO":
-            W = np.zeros(self.M, self.C) 
-            V = np.zeros(self.D,self.M)
-        return W,V    
-
-    #TODO def a function for telling constructor how many hidden layers / what they are
-    #later can extend if we want diff output functions at different layers
-    #return a list of hidden layer functions
+            #note extra col for BIAS 
+            V = np.random.randn(self.D+1,self.M) * .01
+            W = np.random.randn(self.M+1, self.C) * .01 #out of func intiialize weights and store initial versions
+            bw = np.random.randn(self.M) * .01
+            #TODO biases of last layer will be related to C?
+            blast = np.random.randn(self.C) * .01
+        #elif init_type == "ZERO":
+        #put other paramater intiialization here
+        return V, W, bw, blast    
 
     #create layer list here for model
     #called in class intializer
     #if there are not hidden layers I thiiink this should work, TODO test for no HL case (Task 3.1) I think just log regr
+    #returns a list of all layers
     def create_layers(self, hidden_activation_func_list, output_activation_func):
+        #list of all layers
+        layers_list = []
+        #create first layer and add to list
+        layers_list.append(l.InputEdge(self.V, self.bw))
 
-        #compute the depth (just the number of hidden layers NOT incl output layer)
-        self.depth_hidden_layers=len(hidden_activation_func_list)
-
-        #append the output activation func for ease
-        hidden_activation_func_list.append(output_activation_func)
-
-        #add each hidden layer
-        #TODO might have to change this if we use decorator for layers
-        hidden_layers_list = []
-        for i, activation_function in enumerate(hidden_activation_func_list):
-            isFirst = True if i == 0 else False
-            weights = self.V if i == 0 else self.W
-            isLast = True if i == len(hidden_activation_func_list)-1 else False
-            layer = l.Layer(weights, activation_function, isFirstLayer=isFirst, isLastLayer=isLast)
-            hidden_layers_list.append(layer)
-
-        return hidden_layers_list
+        #create hidden layers: list size passed determines numbre of hidden layers
+        #if it's the last index before the output func, bias vector size will be different
+        last_index = len(hidden_activation_func_list)-1
+        for index, activation_function in enumerate(hidden_activation_func_list):
+            bias = self.bw if index != last_index else self.blast
+            hid_layer = l.HiddenLayer(self.W, bias, activation_function)
+            layers_list.append(hid_layer)
+        #create output layer
+        layers_list.append(l.OutputLayer(output_activation_func))
+        return layers_list
 
     #Compute forward pass
     #parameters stored in layer object as needed
     #here I passed the parameterse to the forward_pass func directly rather than the model object
     #   incase we want to play around w stochastic vs full batch gradient descent
-    def forward_pass(self, X , V , W):
-
+    def forward_pass(self, X):
         #scope in python is a function!
         for i,layer in enumerate(self.layers):
             input = X if i == 0 else z # X will be first layer input, otherwise it's the output, z, of last layer
             z = layer.get_output(input)
-            yh = z # last value computed is yh, rename for consistency
-            return yh
+        yh = z # last value computed is yh, rename for consistency
+        return yh
 
-    #TODO : confused about when we're running GD? 
-    def fit(self, x, y, optimizer): #optimizer is GD in our case
-        N,D = x.shape #TODO sus out the actual dimension of D here
+    #def fit(self, X, Y, optimizer): #optimizer is GD in our case
+    def fit(self, X):
+        N,D = X.shape 
         self.N = N
+        self.D = D
 
-     
-        #why tf is gradient defined here? : so this func has access to outter variables
-        def gradient(x, y, params): #computes grad of loss wrt dparams ?
-            v, w = params
-            
-            #TODO: ask in OH
-            #I think we'll just forward pass once
-            #and then backward pass until stop cond for stochastic GD
+        #must add bias to X input, so now D + 1 width - an extra col?
+        bias = np.ones((N,1), dtype=float)
+        X = np.append(X, bias, axis=1)
+ 
+        self.forward_pass(X)     
 
-            #FORWARD
-            ################################
-            z = af.logistic(np.dot(x, v)) #N x M #forward pass
-            yh = af.logistic(np.dot(z, w))#N #forward pass
-            ################################
-            
-            #BACKWARD PASS
-            ################################
-            #compute the loss function (should be cat cross entropy )
-            dy = yh - y #N #using L2 loss even tho doing class? shouldn't, right way is to use cross entropy loss
-            #dy is L / L _ y but we use dy?  dy = dL/dy
-            dw = np.dot(z.T, dy)/N #M #take grad step in backwards direction, dw= dy/dw
-            dz = np.outer(dy, w) #N x M #compute 
-            dv = np.dot(x.T, dz * z * (1 - z))/N #D x M 
-            dparams = [dv, dw] #store gradients of two parametsrs in a list
-
-            ################################
-            return dparams
-        
-        #the intial weights + TODO biases ? cur initialized in run
-        w = self.w
-        v = self.v
-        params0 = [v,w]
-
+        #params0 = [v,w]
         #optimizer here is gd, passed to the fit function
-        self.learned_params = optimizer.run(gradient, x, y, params0) #pass grad , x, ,y, initial params 
+        #self.learned_params = optimizer.run(gradient, x, y, params0) #pass grad , x, ,y, initial params 
         
         #returns optimized parameters
         return self
