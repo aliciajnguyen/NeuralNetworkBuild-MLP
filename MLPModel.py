@@ -31,20 +31,6 @@ class MLP:
         #num hidden_layers just len of activation_func_list
         #self.learned_params  #what we learn using gradient descent in fit function IF WE DON'T DO STOCHASTIC
         #self.N  = the number of training instances fit to
-            
-
-    #TODO delete this method
-    #initialize the weights in the constructor according to intialization type (parameter to tune)
-    #note if that hidden activation func list is empty, no hidden layers constructed
-    def initialize_parameters(self, init_type):
-        if init_type == "RANDOM":
-            #note extra col for BIAS 
-            V = np.random.randn(self.D+1,self.M) * .01
-            W = np.random.randn(self.M+1, self.C) * .01 
-            #I think biases are actually just incorporated as extra dim in X and W 
-        #elif init_type == "ZERO":
-           #put other paramater init here
-        return V, W 
 
     #create layer list here for model
     #called in class intializer
@@ -92,61 +78,33 @@ class MLP:
         return yh
     
     #perform the backward pass
-#        return list(parameter_gradients)  # Return the parameter gradients
+    #return list(parameter_gradients)  # Return the parameter gradients
+    #calls a number of functions in utilities to do partial derivative calculations
     def backward_pass(self, X, Y, Yh):
         # Yh = N X C
 
-        layers = self.layers   # edges and activation layers
+        layers = self.layers                 #edges and activation layers
         activations = []
-        activations.append(X) # add x as the beginning inpu
+        activations.append(X)                #add x as the beginning inpu
         activations.extend(self.activations) #output of each layer
         
-        
-        params = collections.deque() # a list of parameters for gradient decent later
-
-#OUTPUT LAYER       
-#def get_dy(self, Y, Yh):
-#        dy = Yh - Y
-#        return dy
-
-#FINAL EDGE
-#    def get_dw(self, z, dy, N):
-#        dw = np.dot(z.T, dy)/N
-#        return dw
-
-# Hiden Layer
-#def get_dz(dy, V):
-#        dz = np.dot(dy, V.T)
-#        return dz
-
-#EDGE     #z will be x at first layer?
-#    def get_dv(self, z, dz, N):
-#        dv = np.dot(z.T, dz * z * (1 - z))/N #D x M  #TODO change this it's a combo , should bebelow?
-
-#general deriv case
-#def get_dv(self, z, dz, dzq, N):
-#        dv = np.dot(z.T, dz * dzq)/N #D x M  #this is for log deriv in square brackets #TODO check vectorization
-#        return dv 
-
-
-#dw = np.dot(z.T, dy)/N ? 
+        params = collections.deque()         #a list of parameters for gradient decent later
 
         #last layer and edge special case:
         #compute dy = pderiv L wrt W
-        final_layer = layers.pop(-1)              #get output layer at end of list
-        dy = final_layer.get_dy(Y, Yh)    #pderiv(Loss) wrt u actually
-        z = activations.pop()      #need last activations - ENSURE that
+        final_layer = layers.pop(-1)            #get output layer at end of list
+        dy = u.get_dy(Y, Yh)                    #pderiv(Loss) wrt u actually
+        z = activations.pop()                   #need last activations - ENSURE that
         final_edge = layers.pop()               #get last edge with W
-        dw = final_edge.get_dw(z, dy, self.N)  
+        dw = u.get_dw(z, dy, self.N)  
 
-        #save for grad desc
-        params.append(dw)
+        params.append(dw)               #save for grad desc
 
-        #for iterating in the following loop
-        err_from_above = dy             #how to keep track of cost so far, what we back prop
-        params_from_above = dw
-        #reverse the layers (propograte from back)
-        #encounter hidden unit layer, then edge, then next hidden unit layer, etc
+        #for iterating in the following loop, will change ever loop
+        err_from_above = dy             #cost so far, backprop
+        params_from_above = dw          #relavent params, backprop, kinda
+
+        #reverse the layers (propograte from back): encounter hidden unit layer, then edge, then next hidden unit layer, etc
         for layer in reversed(layers): 
             #to calculate the derivative of a hidden layer we'll need 4 terms:
             #    #pder L wrt y * pder y wrt u = error from above = err_from_above
@@ -157,12 +115,9 @@ class MLP:
             if isinstance(layer, l.HiddenLayer):
                 #get err_from_above * pderiv u/pderiv z
                 z = activations.pop(-1)  
-                dz = layer.get_dz(err_from_above, params_from_above)    #params_abv will be set in the last iteration   
-                #WILL NEED TO UPDATE COST, also SUBSET of V?
-                #TODO: W in this line should be the weights from the last layer!
-                #how to generalize? -> get it from second half of this loop to get it for the iteration we'll need here
+                dz = u.get_dz(err_from_above, params_from_above)    #params_abv will be set in the last iteration   
 
-                #get the derv of this function, WILL CHANGE depending on activation func, so deriv of af held in layer for easy comp
+                #get the deriv of this function, WILL CHANGE depending on activation func, so deriv of af held in layer for easy comp
                 dzq = layer.get_af_deriv(z)
 
                 #what we'll pass to next layer
@@ -173,15 +128,13 @@ class MLP:
                 #z will still hold the activations from hidden unit layer output 
                 #dq will still hold derivative we want from last iteration
                 #dz still holds as well
-                dv = layer.get_dv(z, dz, dzq, self.N) #z should be activations from last layer
+                dv = u.get_dv(z, dz, dzq, self.N) #z should be activations from last layer
 
                 params.appendleft(dv)
                 params_from_above = dv
 
-        #params was a deque for efficiency, change back to luts
-        params = list(params)
+        params = list(params)         #params was a deque for efficiency, change back to list
         return params
-
 
     def fit(self, X, Y, learn_rate=1, gd_iterations=100, dropout_p=0):
         N,D = X.shape 
@@ -192,20 +145,17 @@ class MLP:
         X = np.append(X, bias, axis=1)
 
         #DEBUG
-        Yh = self.forward_pass(X)     
-        learned_params = self.backward_pass(X, Y, Yh)
+        #Yh = self.forward_pass(X)     
+        #learned_params = self.backward_pass(X, Y, Yh)
         
-        #def gradient(X, Y, params):    
-        #    Yh = self.forward_pass(X)     
-        #    learned_params = self.backward_pass(X, Y, Yh)
-        #    return learned_params
+        def gradient(X, Y, params):    
+            Yh = self.forward_pass(X)     
+            learned_params = self.backward_pass(X, Y, Yh)
+            return learned_params
         
-        #get list of params learned from back prop
-        #params0 = [v,w] 
-
         #create GradientDescent obj here and pass it our HP's
         #take out of the method pass tf
-        #optimizer = gd.GradientDescent(learning_rate=learn_rate, max_iters=gd_iterations)
+        optimizer = gd.GradientDescent(learning_rate=learn_rate, max_iters=gd_iterations)
 
         #actually run GD
         #optimizer here is gd, passed to the fit function
@@ -217,7 +167,6 @@ class MLP:
     def predict(self, X): 
         Vlearned, Wlearned = self.learned_params
         yh = self.forward_pass(X , Vlearned, Wlearned)
-
-        #softmax returns probs so much use argmax
+        #softmax returns probs so much use argmax?
         #Yh = np.argmax(Yh, axis = 1)
-        return yh #should be dim N
+        return yh 

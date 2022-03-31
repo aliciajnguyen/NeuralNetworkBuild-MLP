@@ -90,7 +90,9 @@ def experiment4():
     #data
     # D = 2 , N = 2
     x = np.array([[1, 2], [3, 4], [5, 6]]) #each row is an input, so each inner bracket []
-    y = np.array([1, 0, 2]) #TODO note currently Yh 3x3 - decide where to put argmax
+    #y = np.array([0.3, 0.4, 0.3], [0.5, 0.3, 0.2], [0.2, 0.1, 0.7]) #TODO note currently Yh 3x3 - decide where to put argmax
+    # or should it be?? see https://edstem.org/us/courses/18448/discussion/1334861
+    y = np.array([[0, 1, 0], [1, 0, 0], [0, 0, 1]]) #one hot encoding
 
     # N = #
     # M =3

@@ -2,31 +2,32 @@ import numpy as np
 
 #BACK PROP CALCULATIONS
 
-#OUTPUT LAYER       
-#def get_dy(self, Y, Yh):
-#        dy = Yh - Y
-#        return dy
+#Output Layer      
+def get_dy(Y, Yh):
+        dy = Yh - Y
+        return dy
 
-#FINAL EDGE
-#    def get_dw(self, z, dy, N):
-#        dw = np.dot(z.T, dy)/N
-#        return dw
+#Final Layer
+#get params
+def get_dw(z, dy, N):
+    dw = np.dot(z.T, dy)/N
+    return dw
 
-# Hiden Layer
-#def get_dz(dy, V):
-#        dz = np.dot(dy, V.T)
-#        return dz
+#Hidden Layer
+#get gradient of inputs at this layer
+#pass the derivative of whatever activation function we're using??
+def get_dz(dy, V):
+    dz = np.dot(dy, V.T)
+    return dz
 
-#EDGE     #z will be x at first layer?
-#    def get_dv(self, z, dz, N):
-#        dv = np.dot(z.T, dz * z * (1 - z))/N #D x M  #TODO change this it's a combo , should bebelow?
-
-#general deriv case
-#def get_dv(self, z, dz, dzq, N):
-#        dv = np.dot(z.T, dz * dzq)/N #D x M  #this is for log deriv in square brackets #TODO check vectorization
-#        return dv 
-
-
+#Get deriv of Hidden Layer: All together
+#where we mult a hidden unit's layer all together!
+#z will be x at first layer?
+#z is actually input from below
+#dq is our activation func der: deriv_activ_func(z)
+def get_dv(z, dz, dzq, N):
+    dv = np.dot(z.T, dz * dzq)/N #D x M  #this is for log deriv in square brackets #TODO check vectorization
+    return dv 
 
 
 #COST FUNCTIONS
