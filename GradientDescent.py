@@ -1,7 +1,5 @@
 #https://colab.research.google.com/drive/1VEYvm4Z2denIM2Gy1j9K7tqmA38zwKaQ#scrollTo=fa3GgubSfY2R
 import numpy as np
-#import warnings
-#warnings.filterwarnings('ignore')
 
 class GradientDescent:
     

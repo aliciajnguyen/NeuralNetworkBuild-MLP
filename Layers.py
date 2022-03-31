@@ -2,9 +2,9 @@
 #define a base/parent class that the 3 types of layers will inherit from
 #3 different layer articulations after, 1 "edge" layer articulation
 
-import itertools
 import numpy as np
 import ActivationFunctions as af
+np.random.seed(1234)
 
 #GENERAL STRUCTURE
 #Parent class, use for documenting other layers - necessary?
@@ -45,22 +45,8 @@ class InputEdge(Layer):
         self.output = output #INPUT LAYER
         return output
 
-    def get_params_iter(self):
-        """Return an iterator over the parameters."""
-        return itertools.chain(
-            np.nditer(self.W, op_flags=['readwrite']),
-            np.nditer(self.b, op_flags=['readwrite']))
-    
-    def get_params_grad(self, X, output_grad):
-        """Return a list of gradients over the parameters."""
-        JW = X.T @ output_grad
-        Jb = np.sum(output_grad, axis=0)
-        return [g for g in itertools.chain(
-            np.nditer(JW), np.nditer(Jb))]
-    
-    def get_input_grad(self, Y, output_grad):
-        """Return the gradient at the inputs of this layer."""
-        return output_grad @ self.V.T
+    def get_grad():
+        dv = np.dot(x.T, dz * z * (1 - z))/N #D x M 
 
 #hidden layer can have whatever relavent activation function
 
@@ -101,11 +87,11 @@ class HiddenLayer(Layer):
         return output 
 
     #get gradient of inputs at this layer
-    #pass the derivative of whatever activation function we're using
-    def get_input_grad(self, Y, output_grad):
-        
+    #pass the derivative of whatever activation function we're using??
+    def get_grad(dy, W):
+        dz = np.dot(dy, W.T)
+        return dz
 
-        return np.multiply(self.activation_function_der(Y), output_grad)
 
 #the edge class performs the linear transformations (ie Wv + b)
 # note the input layer to first layer DOES NOT have an edge bc IS an edge
@@ -114,47 +100,49 @@ class HiddenLayer(Layer):
 #   and this will be the input to the next layer
 #   weight matrix should be W for the last layer
 class Edge(Layer):
-    def __init__(self, V, isFinalEdge=False):       
+    def __init__(self, hu_num_in, hu_num_out):       
         #INPUT TO LAYER
         #input here is X aka z^l-1 (output of the last layer)
         #OUTPUT
         #self.output = where output of linear stord (WX + b)
 
-        #PARAMETERS  (initialized in constructor of MLP)
-        self.V = V
+        #PARAMETERS  (dimensions from constructor of MLP)
+        #bias addition handled in constructor
+        self.V = np.random.randn(hu_num_in, hu_num_out) * 0.1
+
+    # compute WX + b: z @ self.V + self.b
+    #z will be X for first input edge
+    def get_output(self, z):
+        output = z @ self.V  # compute z @ self.W + self.b, b INCORP INTO WEIGHT VECTOR
+        self.output = output 
+        print("Linear layer output:") #debug
+        print(output)
+        return output
+
+    #z will be x at first layer?
+    def get_params(self, z, dz, N):
+        dv = np.dot(z.T, dz * z * (1 - z))/N #D x M 
+        return dv
+
+class FinalEdge(Layer):
+    def __init__(self, hu_num_in, C):
+
+        #PARAMETERS  (dimensions from constructor of MLP)
+        #number of HU's in last layer and num of classes
+        #bias addition handled in constructor
+        self.W = np.random.randn(hu_num_in, C) * 0.1
 
     # compute WX + b: z @ self.W + self.b
     def get_output(self, z):
-        output = z @ self.V  # compute z @ self.W + self.b, b INCORP INTO WEIGHT VECTOR
-        self.output = output #EDGE
+        output = z @ self.W  # compute z @ self.W + self.b, b INCORP INTO WEIGHT VECTOR
+        self.output = output 
+        print("Final Linear layer output:")
+        print(output)
         return output
-
-    def get_params_grad(self, X, output_grad):
-        pass
-
-    #gradient at the input of this layer
-    def get_input_grad(self, Y, output_grad):
-        pass
-        #return output_grad @ self.W.Y
-        
-    def get_params_iter(self):
-        """Return an iterator over the parameters."""
-        return itertools.chain(
-            np.nditer(self.W, op_flags=['readwrite']),
-            np.nditer(self.b, op_flags=['readwrite']))
-
-    def get_params_grad(self, X, output_grad):
-        """Return a list of gradients over the parameters."""
-        JW = X.T @ output_grad
-        Jb = np.sum(output_grad, axis=0)
-        return [g for g in itertools.chain(
-            np.nditer(JW), np.nditer(Jb))]
     
-    #gradients of inputs at this layer
-    def get_input_grad(self, Y, output_grad):
-        """Return the gradient at the inputs of this layer."""
-        #return output_grad @ self.V.Y
-        return output_grad @ self.V.T
+    def get_params(self, z, dy, N):
+        dw = np.dot(z.T, dy)/N
+        return dw
 
 
 #layer task is to apply the relavent function for our task
@@ -188,6 +176,6 @@ class OutputLayer(Layer):
     def get_cost(self, Y, Yh):
         return self.cost_function(Y, Yh)
 
-    def get_input_grad(self, Y, Yh):
-        return (Y - Yh) / Y.shape[0]
-    #    return Yh - Y  #should be dy
+    def get_grad(self, Y, Yh):
+        dy = Yh - Y
+        return dy
