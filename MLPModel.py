@@ -183,13 +183,17 @@ class MLP:
         #for layer in reversed(self.layers):
         #    if isinstance(layer,l.Edge):
         #        layer.set_params(learned_params.pop())
-
-
         return self
-    
+
+    #returns the PROBABILITIES of classes 
+    # (output of softmax rather than one hot encoding)
+    def predict_probs(self, X): 
+        yh = self.forward_pass(X)
+        return yh     
+
+
     def predict(self, X): 
         yh = self.forward_pass(X)
-
-        #softmax returns probs so much use argmax?
-        Yh = np.argmax(Yh, axis = 1)
+        #softmax returns probs so much use argmax to get one hot encoding
+        yh = np.argmax(yh, axis = 1)
         return yh 
