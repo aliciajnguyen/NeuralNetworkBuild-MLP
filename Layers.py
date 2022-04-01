@@ -6,17 +6,6 @@ import numpy as np
 import ActivationFunctions as af
 np.random.seed(1)
 
-#GENERAL STRUCTURE
-#Parent class, use for documenting other layers - necessary?
-#class Layer:
-#    # Will be overriden to have different constructor for each layer type
-#     #FOR FORWARD PASS
-#    def get_output(self, input):
-#        pass 
-#    #FOR BACKWARD PASS
-#    def get_input_grad(self, Y, output_grad):
-#        pass
-
 #hidden layer can have whatever relavent activation function
 #   we'll make sure ever hidden layer is attached to an output edge
 #   where h() happens
@@ -54,13 +43,6 @@ class HiddenLayer():
         dh = self.activation_function_der(z)
         return dh #derivative of h(z) aka pder z/pderiv q sl16
 
-    #get gradient of inputs at this layer
-    #pass the derivative of whatever activation function we're using??
-    #def get_dz(self, dy, W):
-    #    dz = np.dot(dy, W.T)
-    #    return dz
-
-
 #the edge class performs the linear transformations (ie Wv + b)
 # note the input layer to first layer DOES NOT have an edge bc IS an edge
 #   we'll make sure ever hidden layer is attached to an output edge
@@ -94,15 +76,6 @@ class Edge():
     def get_params(self):
         return self.V
 
-    #where we mult a hidden unit's layer all together!
-    #z will be x at first layer?
-    #z is actually input from below
-    #dq is our activation func der: deriv_activ_func(z)
-    #def get_dv(self, z, dz, dzq, N):
-    #    #dv = np.dot(z.T, dz * [z * (1 - z)])/N #D x M  #this is for log deriv in square brackets
-    #    dv = np.dot(z.T, dz * dzq)/N #D x M  #this is for log deriv in square brackets #TODO check vectorization
-    #    return dv #DxM ?
-
 #special edge before final layer because weight parameters have different dimensions
 class FinalEdge():
     def __init__(self, hu_num_in, C):
@@ -121,11 +94,6 @@ class FinalEdge():
     
     def get_params(self):
         return self.W
-
-    #def get_dw(self, z, dy, N):
-    #    dw = np.dot(z.T, dy)/N
-    #    return dw
-
 
 #layer task is to apply the relavent function for our task
 #for this project it will be softmax for multiclass classification
@@ -150,13 +118,7 @@ class OutputLayer():
         print(output)
         return output 
     
-    #def get_layers_output() #defined in parent?
-
     #cost function passed to constructor
     #categorical cross  entropy cost function
     def get_cost(self, Y, Yh):
         return self.cost_function(Y, Yh)
-
-    #def get_dy(self, Y, Yh):
-    #    dy = Yh - Y
-    #    return dy

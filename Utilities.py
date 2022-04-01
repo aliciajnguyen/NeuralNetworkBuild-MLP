@@ -3,31 +3,31 @@ import numpy as np
 #BACK PROP CALCULATIONS
 
 #Output Layer      
-def get_dy(Y, Yh):
-        dy = Yh - Y
-        return dy
+#def get_dy(Y, Yh):
+#        dy = Yh - Y
+#        return dy
 
 #Final Layer
 #get params
-def get_dw(z, dy, N):
-    dw = np.dot(z.T, dy)/N
-    return dw
+#def get_dw(z, dy, N):
+#    dw = np.dot(z.T, dy)/N
+#    return dw
 
 #Hidden Layer
 #get gradient of inputs at this layer
 #pass the derivative of whatever activation function we're using??
-def get_dz(dy, V):
-    dz = np.dot(dy, V.T)
-    return dz
+#def get_dz(dy, V):
+#    dz = np.dot(dy, V.T)
+#    return dz
 
 #Get deriv of Hidden Layer: All together
 #where we mult a hidden unit's layer all together!
 #z will be x at first layer?
 #z is actually input from below
 #dq is our activation func der: deriv_activ_func(z)
-def get_dv(z, dz, dzq, N):
-    dv = np.dot(z.T, dz * dzq)/N #D x M  #this is for log deriv in square brackets #TODO check vectorization
-    return dv 
+#def get_dv(z, dz, dzq, N):
+#    dv = np.dot(z.T, dz * dzq)/N #D x M  #this is for log deriv in square brackets #TODO check vectorization
+#    return dv 
 
 
 #COST FUNCTIONS

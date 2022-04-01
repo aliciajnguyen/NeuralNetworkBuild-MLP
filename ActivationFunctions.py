@@ -1,7 +1,4 @@
-#LEARNING INTERFACES/ abstract methods in python
-# https://realpython.com/python-interface/#using-abstract-method-declaration
-##create base (parent) clsas 
-
+#LEARNING INTERFACES/ abstract methods in python # https://realpython.com/python-interface/#using-abstract-method-declaration
 import numpy as np
 
 #HIDDEN LAYERS

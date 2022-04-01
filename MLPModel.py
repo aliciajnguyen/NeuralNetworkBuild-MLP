@@ -102,10 +102,12 @@ class MLP:
         #last layer and edge special case:
         #compute dy = pderiv L wrt W
         final_layer = layers.pop(-1)            #get output layer at end of list
-        dy = u.get_dy(Y, Yh)                    #pderiv(Loss) wrt u actually
+        dy = Yh - Y                    #pderiv(Loss) wrt u actually
         z = activations.pop()                   #need last activations - ENSURE that
+        z = np.delete(z, -1,axis=1)
+
         final_edge = layers.pop(-1)               #get last edge with W
-        dw = u.get_dw(z, dy, self.N)  
+        dw = np.dot(z.T, dy)/self.N 
 
         params.append(dw)               #save for grad desc
 
@@ -124,7 +126,10 @@ class MLP:
             if isinstance(layer, l.HiddenLayer):
                 #get err_from_above * pderiv u/pderiv z
                 z = activations.pop(-1)  
-                dz = u.get_dz(err_from_above, params_from_above)    #params_abv will be set in the last iteration   
+                #TRY shaving off bias of activations
+                z = np.delete(z, -1,axis=1)
+
+                dz = np.dot(err_from_above, params_from_above.T)    #params_abv will be set in the last iteration   
 
                 #get the deriv of this function, WILL CHANGE depending on activation func, so deriv of af held in layer for easy comp
                 dzq = layer.get_af_deriv(z)
@@ -137,7 +142,7 @@ class MLP:
                 #z will still hold the activations from hidden unit layer output 
                 #dq will still hold derivative we want from last iteration
                 #dz still holds as well
-                dv = u.get_dv(z, dz, dzq, self.N) #z should be activations from last layer
+                dv = dv = np.dot(z.T, dz * dzq)/self.N #z should be activations from last layer
 
                 params.appendleft(dv)
                 params_from_above = dv
@@ -163,14 +168,11 @@ class MLP:
             return params
         
         #create GradientDescent obj here and pass it our HP's
-        #take out of the method pass tf
         optimizer = gd.GradientDescent(learning_rate=learn_rate, max_iters=gd_iterations)
-
 
         #actually run GD
         self.learned_params = optimizer.run(gradient, X, Y, self.init_params) #pass grad , x, ,y, initial params 
         
-        #decide how to store parameters for fit
         return self
     
     def predict(self, X): 
