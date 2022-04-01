@@ -38,28 +38,30 @@ class MLP:
     #hard coded so that all layers have to have the same number hidden units but this could be changed
     def create_layers(self, hidden_activation_func_list, output_activation_func, cost_function, init_type):
         layers_list = []    #list of all layers
-        init_params = []    #list of parameters for each edge layer
+        init_params = []    #list of parameters for each edge layer #TODO might not keep strategy
 
         #dimensions for parameter matrices with bias additions (one's col added to X too)
         Dplusbias = self.D +1       #V dim = (D+1, M)
         Mplusbias = self.M +1       #W dim = (M+1, C)
+
         #only for making variable width layers
         #M_last = Dplusbias          #for param initialization based on activation func, need width last layer
 
         #account for case with no hidden layers (log regression)
         if hidden_activation_func_list == None or len(hidden_activation_func_list) == 0  or self.M==0:
-            spec_final_edge = l.FinalEdge(self.D, self.C)
+            spec_final_edge = l.Edge(self.D, self.C)
             layers_list.append(spec_final_edge)       #create first edge (from X to first HU) and add to list
             init_params.append(spec_final_edge.get_params())
             #no bias this case
         else:
             #create hidden layers: length of passed activation funcs determines numbre of hidden layers
-            for activation_function in hidden_activation_func_list:             
 
-                #create edge
-                edge = l.Edge(Dplusbias, self.M)
-                init_params.append(edge.get_params())
-                layers_list.append(edge)
+            #first edge has special dimensions
+            edge = l.Edge(Dplusbias, Mplusbias) #TODO might need to make this M+1 for matrix mult
+            layers_list.append(edge)
+
+            final_index = len(hidden_activation_func_list)-1
+            for i,activation_function in enumerate(hidden_activation_func_list):             
 
                 hid_layer = l.HiddenLayer(activation_function) 
                 layers_list.append(hid_layer)
@@ -72,16 +74,19 @@ class MLP:
                     params = edge.get_params()
                     params_custom = activation_function.param_init_by_activ_type(params, Mplusbias)
                     edge.set_params(params_custom)
+                init_params.append(edge.get_params()) #append params only after they've been modified
+                
+                #create new edge
+                #special case for the edges before the final output layer weight matrix W instead of V
+                edge = l.Edge(Mplusbias, Mplusbias) if i != final_index else l.Edge(Mplusbias, self.C)
+                layers_list.append(edge)
 
                 #if using variable width update M_last here
 
-        #special case for the edges before the final output layer weight matrix W instead of V
-        edge = l.FinalEdge(Mplusbias, self.C)
-        init_params.append(edge.get_params())
-        layers_list.append(edge)
+        init_params.append(edge.get_params()) #append final edge that wasn't specially parameterized
 
         layers_list.append(l.OutputLayer(output_activation_func, cost_function))         #create output layer
-        self.init_params = init_params #gave for GD later
+        self.init_params = init_params #gave for GD later, not sure if we'll just use layers TODO
 
         return layers_list
 
