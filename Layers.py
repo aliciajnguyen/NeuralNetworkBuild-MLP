@@ -52,7 +52,7 @@ class HiddenLayer():
 #   weight matrix should be W for the last layer
 class Edge():
 
-    def __init__(self, hu_num_in, hu_num_out, activation_func_after=None):       
+    def __init__(self, hu_num_in, hu_num_out):       
         #INPUT TO LAYER: h() of last layer
         #OUTPUT:  #self.output = z^l = WX + b: this layer's output later stored 
 

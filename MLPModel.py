@@ -47,7 +47,7 @@ class MLP:
         #M_last = Dplusbias          #for param initialization based on activation func, need width last layer
 
         #account for case with no hidden layers (log regression)
-        if len(hidden_activation_func_list) == 0 or hidden_activation_func_list == None:
+        if hidden_activation_func_list == None or len(hidden_activation_func_list) == 0  or self.M==0:
             spec_final_edge = l.FinalEdge(self.D, self.C)
             layers_list.append(spec_final_edge)       #create first edge (from X to first HU) and add to list
             init_params.append(spec_final_edge.get_params())
@@ -101,7 +101,12 @@ class MLP:
     #perform the backward pass
     #return list(parameter_gradients)  # Return the parameter gradients
     #calls a number of functions in utilities to do partial derivative calculations
+    #note all dimensions here include bias ie M = M+1 from model creation
     def backward_pass(self, X, Y, Yh):
+        #X = NxD
+        #Y = N x C
+        #W = M x C
+        #V = D X M
         # Yh = N X C
 
         layers = self.layers.copy()             #edges and activation layers
@@ -112,58 +117,77 @@ class MLP:
 
         #last layer and edge special case:
         #compute dy = pderiv L wrt W
-        final_layer = layers.pop(-1)            #need?
-        dy = Yh - Y                    #pderiv(Loss) wrt u actually
-        z = activations.pop()                   #need last activations - ENSURE that
+        final_layer = layers.pop(-1)            #need? just to pop
+        dy = Yh - Y                    #N x C   #pderiv(Loss) wrt u actually
+        z = activations.pop()          #N x M         #need last activations - ENSURE that
         #z = np.delete(z, -1,axis=1)
 
         final_edge = layers.pop(-1)               #get last edge with W
-        dw = np.dot(z.T, dy)/self.N 
+        params_from_above = final_edge.get_params()#get the weights for hidden layer calculations
+
+        dw = np.dot(z.T, dy)/self.N    #M x C
 
         params.append(dw)               #save for grad desc
 
         #for iterating in the following loop, will change ever loop
-        err_from_above = dy             #cost so far, backprop
-        params_from_above = dw          #relavent params, backprop, kinda
+        err_from_above = dy           #N x C  #cost so far, backprop
+    
+        #WRONG
+        # SHOULD BE PARAM FOR EACH LAYER
+        # params_from_above = dw        #M x C     #relavent params, backprop, kinda
 
         #reverse the layers (propograte from back): encounter hidden unit layer, then edge, then next hidden unit layer, etc
         for layer in reversed(layers): 
-            #to calculate the derivative of a hidden layer we'll need 4 terms:
-            #    #pder L wrt y * pder y wrt u = error from above = err_from_above
-            #    #pder u wrt z = weights from the output of this layer = params_from_above
-            #    #pder z wrt q = the deriv of activ func with z (this layer's output) passed
-                #pder q wrt V
             
             if isinstance(layer, l.HiddenLayer):
-                #get err_from_above * pderiv u/pderiv z
-                z = activations.pop(-1)  
+                #SHOULD BE OUTPUTTS NOT OF THIS LAYER BUT LAST LAYER
+                #so before we pop a new z, use the z-1 from the previous layer
+                dzq = layer.get_af_deriv(z) #N x M #dzq should have dim of z
+
+                z = activations.pop(-1)  #N x M
                 #TRY shaving off bias of activations
                 #z = np.delete(z, -1,axis=1)
 
-                dz = np.dot(err_from_above, params_from_above.T)    #params_abv will be set in the last iteration   
+                #dz = np.dot(Yh, W.T), first first iteration, params from above set outside loop
+                dz = np.dot(err_from_above, params_from_above.T) #N x M    #params_abv will be set in the last iteration   
 
                 #get the deriv of this function, WILL CHANGE depending on activation func, so deriv of af held in layer for easy comp
-                dzq = layer.get_af_deriv(z)
 
+                err_from_above = dz #backprop error to next layer #TODO unclear about this, but I think correct
+
+                #I THINK INCORRECT
                 #what we'll pass to next layer
-                dq = np.dot(dz, dzq) # want only the 4 partial deriv terms necc for error for above to backpropogate
-                err_from_above = dq
+                #dq = np.dot(dz, dzq.T) # want only the 4 partial deriv terms necc for error for above to backpropogate
+                #err_from_above = dq
 
             else: # will be an edge
+                #don't pop off activation because activations ONLY of HU layers
                 #z will still hold the activations from hidden unit layer output 
                 #dq will still hold derivative we want from last iteration
                 #dz still holds as well
-                dv = dv = np.dot(z.T, dz * dzq)/self.N #z should be activations from last layer
+                dv =  np.dot(z.T, dz * dzq)/self.N #z should be activations from last layer DxM
+
+                params_from_above = layer.get_params()  #layer will be edge, get V
 
                 params.appendleft(dv)
-                params_from_above = dv
+
+                #WRONG, we're not passing weight matrices back, we want the actual weights of the last layer
+                #params_from_above = dv
 
         params = list(params)         #params was a deque for efficiency, change back to list
         return params
 
+    #to calculate the derivative of a hidden layer we'll need 4 terms:
+            #    #pder L wrt y * pder y wrt u = error from above = err_from_above
+            #    #pder u wrt z = weights from the output of this layer = params_from_above
+            #    #pder z wrt q = the deriv of activ func with z (this layer's output) passed
+                  #pder q wrt V
+
+
     def fit(self, X, Y, learn_rate=1, gd_iterations=100, dropout_p=0):
-        N,D = X.shape 
-        self.N = N
+        N,D = X.shape  #DO AFTER bias addition?
+        self.N =N
+        #N = X.shape[0]
  
         #bias implementation: ADD COLS of 1 to x, (must stay 1 to relect weight value)
         bias = np.ones((N,1), dtype=float)

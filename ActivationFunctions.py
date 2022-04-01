@@ -19,7 +19,9 @@ class ReLU(ActivationFunction):
         reLU = lambda x: np.maximum(0, x)
         self.function = reLU
         #reLU_der = lambda x: 0 if x < 0 else 1 
-        reLU_der = lambda x: (x > 0) *1 
+        reLU_der = lambda x: (x > 0) *1  #PROBLEM, should be elementwise
+
+
         #for np arrays (bc boolean expressions involving them turned into arrays of values of these expre for els in said array) 
         self.derivative = reLU_der
         #custom weight initialization based on af, V will be rand already

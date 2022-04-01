@@ -29,3 +29,29 @@ def experiment4():
     model1.fit(x, y)
 
 experiment4()
+
+#building the models for task 3-1
+def Task3_1(X, Y):
+    C = Y.shape[1] #TODO how many classes in dataset?
+    N,D = X.shape 
+
+    #1)no hidden layers
+    hidlayer_activfunc_list1 = []
+    output_activation1 = af.SoftMax()
+    #create model object
+    model3_1_1 = model.MLP(M=0, D=D, C=C, hidden_activation_func_list=hidlayer_activfunc_list1, output_activation_func=output_activation1)
+
+    #2)1 hidden layer, 128 hidden units
+    hidlayer_activfunc_list2 = []
+    hidlayer_activfunc_list2.append(af.ReLU())
+    output_activation2 = af.SoftMax()
+    #create model object
+    model3_1_2 = model.MLP(M=128, D=D, C=C, hidden_activation_func_list=hidlayer_activfunc_list2, output_activation_func=output_activation2)
+
+    #3)1 hidden layer, 128 hidden units
+    hidlayer_activfunc_list3 = []
+    hidlayer_activfunc_list3.append(af.ReLU())
+    hidlayer_activfunc_list3.append(af.ReLU())
+    output_activation3 = af.SoftMax()
+    #create model object
+    model3_1_3 = model.MLP(M=128, D=D, C=C, hidden_activation_func_list=hidlayer_activfunc_list3, output_activation_func=output_activation3)
