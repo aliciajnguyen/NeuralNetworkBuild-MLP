@@ -8,20 +8,20 @@ np.random.seed(1)
 
 #GENERAL STRUCTURE
 #Parent class, use for documenting other layers - necessary?
-class Layer:
-    # Will be overriden to have different constructor for each layer type
-     #FOR FORWARD PASS
-    def get_output(self, input):
-        pass 
-    #FOR BACKWARD PASS
-    def get_input_grad(self, Y, output_grad):
-        pass
+#class Layer:
+#    # Will be overriden to have different constructor for each layer type
+#     #FOR FORWARD PASS
+#    def get_output(self, input):
+#        pass 
+#    #FOR BACKWARD PASS
+#    def get_input_grad(self, Y, output_grad):
+#        pass
 
 #hidden layer can have whatever relavent activation function
 #   we'll make sure ever hidden layer is attached to an output edge
 #   where h() happens
 # conncet to edgess
-class HiddenLayer(Layer):
+class HiddenLayer():
     def __init__(self, activation_function_obj):       
         #INPUT TO LAYER: computed from last edge = Z aka z^l-1 = WX + b
         #LAYER OUTPUT: h()
@@ -67,7 +67,7 @@ class HiddenLayer(Layer):
 #   this is where linear transform happens: Wx + b (after the activation for this layer)
 #   and this will be the input to the next layer
 #   weight matrix should be W for the last layer
-class Edge(Layer):
+class Edge():
 
     def __init__(self, hu_num_in, hu_num_out, activation_func_after=None):       
         #INPUT TO LAYER: h() of last layer
@@ -104,7 +104,7 @@ class Edge(Layer):
     #    return dv #DxM ?
 
 #special edge before final layer because weight parameters have different dimensions
-class FinalEdge(Layer):
+class FinalEdge():
     def __init__(self, hu_num_in, C):
 
         #PARAMETERS  (dimensions from constructor of MLP)
@@ -131,7 +131,7 @@ class FinalEdge(Layer):
 #for this project it will be softmax for multiclass classification
 #I kept it generalizable for future exapnsion
 #though note to do so we'd have to change the cost function as passed to the MLP constructor
-class OutputLayer(Layer):
+class OutputLayer():
 
     def __init__(self, activation_function_obj, cost_function):       
         self.activation_function = activation_function_obj.get_func()  #ACTIVATION FUNCTION

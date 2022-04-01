@@ -28,9 +28,10 @@ class MLP:
         #instead get from layer's themselves to avoid indexing issues
 
         #OBJECT ATTRIBUTES LATER COMPUTED
+        #self.init_params calculated in create_layers
         #num hidden_layers just len of activation_func_list
         #self.learned_params  #what we learn using gradient descent in fit function IF WE DON'T DO STOCHASTIC
-        #self.N  = the number of training instances fit to
+        #self.N  = the number of training instances fit to 
 
     #create layer list here for model
     #called in class intializer
@@ -39,6 +40,7 @@ class MLP:
     #hard coded so that all layers have to have the same number hidden units but this could be changed
     def create_layers(self, hidden_activation_func_list, output_activation_func, cost_function):
         layers_list = []    #list of all layers
+        init_params = []
 
         #dimensions for parameter matrices with bias additions (one's col added to X too)
         Dplusbias = self.D +1       #V dim = (D+1, M)
@@ -46,10 +48,14 @@ class MLP:
 
         #account for case with no hidden layers (log regression)
         if len(hidden_activation_func_list) == 0 or hidden_activation_func_list == None:
-            layers_list.append(l.FinalEdge(self.D, self.C))       #create first edge (from X to first HU) and add to list
+            spec_final_edge = l.FinalEdge(self.D, self.C)
+            layers_list.append(spec_final_edge)       #create first edge (from X to first HU) and add to list
+            init_params.append(spec_final_edge.get_params())
             #no bias this case
         else:
-            layers_list.append(l.Edge(Dplusbias, self.M))       #create first edge (from X to first HU) and add to list
+            first_edge = l.Edge(Dplusbias, self.M)
+            layers_list.append(first_edge)       #create first edge (from X to first HU) and add to list
+            init_params.append(first_edge.get_params())
 
             #create hidden layers: length of passed activation funcs determines numbre of hidden layers
             last_i = len(hidden_activation_func_list)-1
@@ -59,10 +65,13 @@ class MLP:
 
                 #special case for the edges before the final output layer weight matrix W instead of V
                 edge = l.Edge(Dplusbias, self.M) if i != last_i else l.FinalEdge(Mplusbias, self.C)
+                init_params.append(edge.get_params())
                 layers_list.append(edge)
-                in_edge = edge
+                
 
         layers_list.append(l.OutputLayer(output_activation_func, cost_function))         #create output layer
+        self.init_params = init_params #gave for GD later
+
         return layers_list
 
     #Compute forward pass, outputs stored in layer object as needed
@@ -72,7 +81,7 @@ class MLP:
         last_index = len(self.layers)-1
         for i,layer in enumerate(self.layers):
             input = X if i == 0 else z # X will be first layer input, otherwise it's the output, z, of last layer            
-            z = layer.get_output(input) #TODO - does the final layer get appended?
+            z = layer.get_output(input)
             if isinstance(layer, l.HiddenLayer): self.activations.append(z) #only append these activations z for backprop calc
         yh = z # last value computed is yh, rename for consistency
         return yh
@@ -83,7 +92,7 @@ class MLP:
     def backward_pass(self, X, Y, Yh):
         # Yh = N X C
 
-        layers = self.layers                 #edges and activation layers
+        layers = self.layers.copy()          #edges and activation layers
         activations = []
         activations.append(X)                #add x as the beginning inpu
         activations.extend(self.activations) #output of each layer
@@ -95,7 +104,7 @@ class MLP:
         final_layer = layers.pop(-1)            #get output layer at end of list
         dy = u.get_dy(Y, Yh)                    #pderiv(Loss) wrt u actually
         z = activations.pop()                   #need last activations - ENSURE that
-        final_edge = layers.pop()               #get last edge with W
+        final_edge = layers.pop(-1)               #get last edge with W
         dw = u.get_dw(z, dy, self.N)  
 
         params.append(dw)               #save for grad desc
@@ -150,16 +159,16 @@ class MLP:
         
         def gradient(X, Y, params):    
             Yh = self.forward_pass(X)     
-            learned_params = self.backward_pass(X, Y, Yh)
-            return learned_params
+            params = self.backward_pass(X, Y, Yh)
+            return params
         
         #create GradientDescent obj here and pass it our HP's
         #take out of the method pass tf
         optimizer = gd.GradientDescent(learning_rate=learn_rate, max_iters=gd_iterations)
 
+
         #actually run GD
-        #optimizer here is gd, passed to the fit function
-        #self.learned_params = optimizer.run(gradient, x, y, params0) #pass grad , x, ,y, initial params 
+        self.learned_params = optimizer.run(gradient, X, Y, self.init_params) #pass grad , x, ,y, initial params 
         
         #decide how to store parameters for fit
         return self

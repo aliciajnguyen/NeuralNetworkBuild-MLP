@@ -14,7 +14,9 @@ class GradientDescent:
         while np.any(norms > self.epsilon) and t < self.max_iters:
             grad = gradient_fn(x, y, params)
             for p in range(len(params)):
+                #params[p] -= self.learning_rate * grad[p] #careful now passing list not array
                 params[p] -= self.learning_rate * grad[p]
+
             t += 1
             norms = np.array([np.linalg.norm(g) for g in grad])
         return params
