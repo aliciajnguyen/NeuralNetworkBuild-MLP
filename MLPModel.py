@@ -22,16 +22,18 @@ class MLP:
         
         #list of represent all layers in mlp
         self.layers = self.create_layers(hidden_activation_func_list, output_activation_func, cost_function)
-                 
-        self.activations = [] #a list of activations
-        # computed for every activation function layer NOT linear transformation layer (edge)
-        #instead get from layer's themselves to avoid indexing issues
+
 
         #OBJECT ATTRIBUTES LATER COMPUTED
         #self.init_params calculated in create_layers
         #num hidden_layers just len of activation_func_list
         #self.learned_params  #what we learn using gradient descent in fit function IF WE DON'T DO STOCHASTIC
         #self.N  = the number of training instances fit to 
+
+        #computed for every activation function layer NOT linear transformation layer (edge)
+        #created with each forward pass
+        #self.activations = [] #a list of activations
+
 
     #create layer list here for model
     #called in class intializer
@@ -76,7 +78,8 @@ class MLP:
 
     #Compute forward pass, outputs stored in layer object as needed
     def forward_pass(self, X):
-        print("Input to MLP X")
+        self.activations = []
+        print("Input to MLP X") #debug forward pass
         print(X)
         last_index = len(self.layers)-1
         for i,layer in enumerate(self.layers):
@@ -104,7 +107,7 @@ class MLP:
         final_layer = layers.pop(-1)            #get output layer at end of list
         dy = Yh - Y                    #pderiv(Loss) wrt u actually
         z = activations.pop()                   #need last activations - ENSURE that
-        z = np.delete(z, -1,axis=1)
+        #z = np.delete(z, -1,axis=1)
 
         final_edge = layers.pop(-1)               #get last edge with W
         dw = np.dot(z.T, dy)/self.N 
@@ -127,7 +130,7 @@ class MLP:
                 #get err_from_above * pderiv u/pderiv z
                 z = activations.pop(-1)  
                 #TRY shaving off bias of activations
-                z = np.delete(z, -1,axis=1)
+                #z = np.delete(z, -1,axis=1)
 
                 dz = np.dot(err_from_above, params_from_above.T)    #params_abv will be set in the last iteration   
 
