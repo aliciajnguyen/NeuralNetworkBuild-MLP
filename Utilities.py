@@ -1,5 +1,23 @@
 import numpy as np
 
+
+#COST FUNCTIONS
+def cat_cross_entropy(Y, Yh):
+    return - np.multiply(Yh, np.log(Y)).sum() / Y.shape[0]
+
+
+def evaluate_acc(y, yh):
+    accuracy = np.sum(yh == y)/y.shape[0]
+    print(f'test accuracy: {accuracy}')
+    return accuracy
+
+
+
+
+##########################################################################
+#ROUGH WORK BELOW
+##########################################################################
+
 #BACK PROP CALCULATIONS
 
 #Output Layer      
@@ -30,12 +48,6 @@ import numpy as np
 #    return dv 
 
 
-#COST FUNCTIONS
-
-#TODO add logsumexp?
-
-def cat_cross_entropy(Y, Yh):
-    return - np.multiply(Yh, np.log(Y)).sum() / Y.shape[0]
 
 #build to avoid underflow ??:
 #def cat_cross_entropy(Y, Yh):

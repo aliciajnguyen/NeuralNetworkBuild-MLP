@@ -26,11 +26,6 @@ class HiddenLayer():
         #compute activation function
         output = self.activation_function(z) #cross mult correct?
         
-        #need to append an extra col to output for bias
-        #so dim will become ((M + 1) x N)
-        #bias = np.ones((output.shape[0],1), dtype=float)
-        #output = np.append(output, bias, axis=1)
-
         #self.output = output
 
         print("Hidden layer output:") #debug
@@ -57,8 +52,7 @@ class Edge():
         #OUTPUT:  #self.output = z^l = WX + b: this layer's output later stored 
 
         #PARAMETERS  (dimensions from constructor of MLP)
-        #bias addition handled in constructor
-        #will be W for final edge
+        #bias addition handled in constructor, V will be W for final edge
         self.V = np.random.randn(n_in, n_out) * 0.1   #V dim = M x D
         
     # compute VX + b: z @ V + b, b incorporated into weight and X vector
@@ -78,31 +72,6 @@ class Edge():
     def set_params(self, V):
         self.V = V
 
-#TODO DELETE UNNECESSARY
-#special edge before final layer because weight parameters have different dimensions
-"""
-class FinalEdge():
-    def __init__(self, n_in, C):
-
-        #PARAMETERS  (dimensions from constructor of MLP)
-        #number of HU's in last layer and num of classes, bias addition handled in constructor
-        self.W = np.random.randn(n_in, C) * 0.1 #W dim = C X M
-
-    # compute WX + b: z @ W + b, b incorporated into weight and X vector
-    def get_output(self, z):
-        output = z @ self.W  
-        #self.output = output 
-        print("Final Linear layer output:")
-        print(output)
-        return output
-    
-    def get_params(self):
-        return self.W
-    
-    #for altering initialization
-    def set_params(self, W):
-        self.W = W
-"""
 
 #layer task is to apply the relavent function for our task
 #for this project it will be softmax for multiclass classification

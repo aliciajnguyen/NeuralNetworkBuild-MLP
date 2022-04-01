@@ -28,6 +28,11 @@ def experiment4():
     # fit model 
     model1.fit(x, y)
 
+    yh = model1.predict(x)
+
+    u.evaluate_acc(y, yh)
+
+
 experiment4()
 
 #building the models for task 3-1
