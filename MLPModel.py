@@ -11,18 +11,16 @@ np.random.seed(1)
 class MLP:
     
     #currently the parameter initialization is hardcoded to be random, but could be changed later
+    #parameter_init_type = "RANDOM" => all parameters initialzed randomly
+    #parameter_init_type = "ACTIV_SPEC" => activation specific:  all parameters of an edge initialized based on
+    #note to tune these hyper parameters we'll have to create different objects
     def __init__(self, M, D, C, hidden_activation_func_list, output_activation_func, cost_function = u.cat_cross_entropy, parameter_init_type = "RANDOM"):
         self.M = M     # M =number of hidden units in hidden layers (width)
         self.C = C     # C outputs (number of classes)        
         self.D = D     # D inputs (number of x inputs) CONFUSION WITH N
-       
-        #W dim = C X M
-        #V dim = M x D  - np weird ordering in matrix creation careful
-        #self.V, self.W = self.initialize_parameters(parameter_init_type) MOVED TO CREATE LAYERS
-        
+               
         #list of represent all layers in mlp
-        self.layers = self.create_layers(hidden_activation_func_list, output_activation_func, cost_function)
-
+        self.layers = self.create_layers(hidden_activation_func_list, output_activation_func, cost_function, parameter_init_type)
 
         #OBJECT ATTRIBUTES LATER COMPUTED
         #self.init_params calculated in create_layers
@@ -34,19 +32,19 @@ class MLP:
         #created with each forward pass
         #self.activations = [] #a list of activations
 
-
     #create layer list here for model
-    #called in class intializer
-    #if there are not hidden layers I thiiink this should work
+    #called in class constructor
     #returns a list of all layers
     #hard coded so that all layers have to have the same number hidden units but this could be changed
-    def create_layers(self, hidden_activation_func_list, output_activation_func, cost_function):
+    def create_layers(self, hidden_activation_func_list, output_activation_func, cost_function, init_type):
         layers_list = []    #list of all layers
-        init_params = []
+        init_params = []    #list of parameters for each edge layer
 
         #dimensions for parameter matrices with bias additions (one's col added to X too)
         Dplusbias = self.D +1       #V dim = (D+1, M)
         Mplusbias = self.M +1       #W dim = (M+1, C)
+        #only for making variable width layers
+        #M_last = Dplusbias          #for param initialization based on activation func, need width last layer
 
         #account for case with no hidden layers (log regression)
         if len(hidden_activation_func_list) == 0 or hidden_activation_func_list == None:
@@ -55,28 +53,39 @@ class MLP:
             init_params.append(spec_final_edge.get_params())
             #no bias this case
         else:
-            first_edge = l.Edge(Dplusbias, self.M)
-            layers_list.append(first_edge)       #create first edge (from X to first HU) and add to list
-            init_params.append(first_edge.get_params())
-
             #create hidden layers: length of passed activation funcs determines numbre of hidden layers
-            last_i = len(hidden_activation_func_list)-1
-            for i, activation_function in enumerate(hidden_activation_func_list):             
+            for activation_function in hidden_activation_func_list:             
+
+                #create edge
+                edge = l.Edge(Dplusbias, self.M)
+                init_params.append(edge.get_params())
+                layers_list.append(edge)
+
                 hid_layer = l.HiddenLayer(activation_function) 
                 layers_list.append(hid_layer)
 
-                #special case for the edges before the final output layer weight matrix W instead of V
-                edge = l.Edge(Dplusbias, self.M) if i != last_i else l.FinalEdge(Mplusbias, self.C)
-                init_params.append(edge.get_params())
-                layers_list.append(edge)
-                
+                #now if initialization type is activation specific, ensure weights initialized
+                #based on hidden layer activation function
+                #only gives best initializations for Relu, tanh, and leaky ReLu
+                #note relies on standard width, otherwise change M to M_last
+                if init_type == "ACTIV_SPEC":
+                    params = edge.get_params()
+                    params_custom = activation_function.param_init_by_activ_type(params, Mplusbias)
+                    edge.set_params(params_custom)
+
+                #if using variable width update M_last here
+
+        #special case for the edges before the final output layer weight matrix W instead of V
+        edge = l.FinalEdge(Mplusbias, self.C)
+        init_params.append(edge.get_params())
+        layers_list.append(edge)
 
         layers_list.append(l.OutputLayer(output_activation_func, cost_function))         #create output layer
         self.init_params = init_params #gave for GD later
 
         return layers_list
 
-    #Compute forward pass, outputs stored in layer object as needed
+    #Compute forward pass
     def forward_pass(self, X):
         self.activations = []
         print("Input to MLP X") #debug forward pass
@@ -95,16 +104,15 @@ class MLP:
     def backward_pass(self, X, Y, Yh):
         # Yh = N X C
 
-        layers = self.layers.copy()          #edges and activation layers
-        activations = []
-        activations.append(X)                #add x as the beginning inpu
-        activations.extend(self.activations) #output of each layer
+        layers = self.layers.copy()             #edges and activation layers
+        activations = self.activations.copy()   #outputs of each hidden layer
+        activations.insert(0, X)                #add x as the beginning input, 
         
         params = collections.deque()         #a list of parameters for gradient decent later
 
         #last layer and edge special case:
         #compute dy = pderiv L wrt W
-        final_layer = layers.pop(-1)            #get output layer at end of list
+        final_layer = layers.pop(-1)            #need?
         dy = Yh - Y                    #pderiv(Loss) wrt u actually
         z = activations.pop()                   #need last activations - ENSURE that
         #z = np.delete(z, -1,axis=1)

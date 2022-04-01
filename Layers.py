@@ -31,7 +31,7 @@ class HiddenLayer():
         bias = np.ones((output.shape[0],1), dtype=float)
         output = np.append(output, bias, axis=1)
 
-        self.output = output
+        #self.output = output
 
         print("Hidden layer output:") #debug
         print(output)
@@ -42,6 +42,7 @@ class HiddenLayer():
     def get_af_deriv(self,z):
         dh = self.activation_function_der(z)
         return dh #derivative of h(z) aka pder z/pderiv q sl16
+            
 
 #the edge class performs the linear transformations (ie Wv + b)
 # note the input layer to first layer DOES NOT have an edge bc IS an edge
@@ -57,24 +58,24 @@ class Edge():
 
         #PARAMETERS  (dimensions from constructor of MLP)
         #bias addition handled in constructor
-        self.V = np.random.randn(hu_num_in, hu_num_out) * 0.1
+        self.V = np.random.randn(hu_num_in, hu_num_out) * 0.1   #V dim = M x D
         
-        #later we'll ensure our weights are initialized properly given what kind of activation we have
-        #which is why we link the activation to it's previous edge
-        self.af_after = activation_func_after
-        #TODO
-
     # compute VX + b: z @ V + b, b incorporated into weight and X vector
     #z will be X for first input edge
     def get_output(self, z):
         output = z @ self.V  
-        self.output = output 
+        #self.output = output 
         print("Linear layer output:") #debug
         print(output)
         return output
 
     def get_params(self):
         return self.V
+    
+    #for altering initialization
+    def set_params(self, V):
+        self.V = V
+
 
 #special edge before final layer because weight parameters have different dimensions
 class FinalEdge():
@@ -82,18 +83,22 @@ class FinalEdge():
 
         #PARAMETERS  (dimensions from constructor of MLP)
         #number of HU's in last layer and num of classes, bias addition handled in constructor
-        self.W = np.random.randn(hu_num_in, C) * 0.1
+        self.W = np.random.randn(hu_num_in, C) * 0.1 #W dim = C X M
 
     # compute WX + b: z @ W + b, b incorporated into weight and X vector
     def get_output(self, z):
         output = z @ self.W  
-        self.output = output 
+        #self.output = output 
         print("Final Linear layer output:")
         print(output)
         return output
     
     def get_params(self):
         return self.W
+    
+    #for altering initialization
+    def set_params(self, W):
+        self.W = W
 
 #layer task is to apply the relavent function for our task
 #for this project it will be softmax for multiclass classification
@@ -113,7 +118,7 @@ class OutputLayer():
     # each Yh is dim C x N?
     def get_output(self, z):
         output = self.activation_function(z) 
-        self.output = output
+        #self.output = output
         print("Final layer output:")
         print(output)
         return output 
