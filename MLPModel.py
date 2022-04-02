@@ -55,10 +55,9 @@ class MLP:
 
         #account for case with no hidden layers (log regression)
         if hidden_activation_func_list == None or len(hidden_activation_func_list) == 0  or self.M==0:
-            spec_final_edge = l.Edge(self.D, self.C)
+            spec_final_edge = l.Edge(Dplusbias, self.C)
             layers_list.append(spec_final_edge)       #create first edge (from X to first HU) and add to list
             init_params.append(spec_final_edge.get_params())
-            #no bias this case
         else:
             #create hidden layers: length of passed activation funcs determines numbre of hidden layers
 
@@ -89,7 +88,7 @@ class MLP:
 
                 #if using variable width update M_last here
 
-        init_params.append(edge.get_params()) #append final edge that wasn't specially parameterized
+            init_params.append(edge.get_params()) #append final edge that wasn't specially parameterized
 
         layers_list.append(l.OutputLayer(output_activation_func, cost_function))         #create output layer
         self.init_params = init_params #gave for GD later, not sure if we'll just use layers TODO

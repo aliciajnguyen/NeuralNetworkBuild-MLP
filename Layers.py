@@ -55,6 +55,7 @@ class Edge():
     #z will be X for first input edge
     def get_output(self, z):
         output = z @ self.V  
+        
         #print("Linear layer output:") #debug
         #print(output)
         return output
