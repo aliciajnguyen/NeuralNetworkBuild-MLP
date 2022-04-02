@@ -15,11 +15,16 @@ class MLP:
     #parameter_init_type = "RANDOM" => all parameters initialzed randomly
     #parameter_init_type = "ACTIV_SPEC" => activation specific:  all parameters of an edge initialized based on
     #note to tune these hyper parameters we'll have to create different objects
-    def __init__(self, M, D, C, hidden_activation_func_list, output_activation_func, cost_function = u.cat_cross_entropy, parameter_init_type = "ACTIV_SPEC"):
+    def __init__(self, M, D, C, hidden_activation_func_list, output_activation_func, cost_function = u.cat_cross_entropy, parameter_init_type = "ACTIVATION_SPECIFIC"):
         self.M = M     # M =number of hidden units in hidden layers (width)
         self.C = C     # C outputs (number of classes)        
-        self.D = D     # D inputs (number of x inputs) CONFUSION WITH N
-               
+        self.D = D     # D inputs (number of x inputs) 
+        
+        #for reporting on model
+        self.parameter_init_type = parameter_init_type
+        self.num_hid_layers = len(hidden_activation_func_list)               
+        self.activation_functions = hidden_activation_func_list
+        
         #list of represent all layers in mlp
         self.layers = self.create_layers(hidden_activation_func_list, output_activation_func, cost_function, parameter_init_type)
 
@@ -39,7 +44,7 @@ class MLP:
     #hard coded so that all layers have to have the same number hidden units but this could be changed
     def create_layers(self, hidden_activation_func_list, output_activation_func, cost_function, init_type):
         layers_list = []    #list of all layers
-        init_params = []    #list of parameters for each edge layer #TODO might not keep strategy
+        init_params = []    #list of parameters for each edge layer #TODO refactor, just for GD
 
         #dimensions for parameter matrices with bias additions (one's col added to X too)
         Dplusbias = self.D +1       #V dim = (D+1, M)
@@ -90,12 +95,31 @@ class MLP:
         self.init_params = init_params #gave for GD later, not sure if we'll just use layers TODO
 
         return layers_list
+    
+    def print_model_summary(self):
+        print("-----Model summary:------------------")
+        print(f'Number of Instances Trained On:  N = {self.N}')
+        print(f'Number of Inputs Trained On:  D = {self.D}')
+        print(f'Number of Hidden Units:  M = {self.M}')
+        print(f'Number of Classes:  C = {self.C}')
+        print(f'Number of Instances Trained On:  N = {self.N}')
+        print(f'Parameter Initialization Type:  {self.parameter_init_type}')
+        print(f'Gradient Descent Learning Rate: {self.learn_rate}')
+        print(f'Gradient Descent Iterations: {self.gd_iterations}')
+        print(f'Layer Dropout Percentages: {self.dropout_p}') #TODO dropout p will be per layer
+        print(f'Number of Hidden Units Layers: {self.num_hid_layers}')
+        print("Activation Functions: ")
+        for af in self.activation_functions:
+            print(type(af).__name__)
+        print("-------------------------------------")
+    
+    
 
     #Compute forward pass
     def forward_pass(self, X):
         self.activations = []
-        print("Input to MLP X") #debug forward pass
-        print(X)
+        #print("Input to MLP X") #debug forward pass
+        #print(X)
         last_index = len(self.layers)-1
         for i,layer in enumerate(self.layers):
             input = X if i == 0 else z # X will be first layer input, otherwise it's the output, z, of last layer            
@@ -156,9 +180,15 @@ class MLP:
         params = list(params)         #params was a deque for efficiency, change back to list
         return params
 
-    def fit(self, X, Y, learn_rate=1, gd_iterations=50, dropout_p=0):
+    #Hyperparameter: dropout_p will be a list of dropout percentages for each layer
+    def fit(self, X, Y, learn_rate=0.1, gd_iterations=50, dropout_p=None):
         N = X.shape[0]
         self.N =N
+
+        #for printing statistics
+        self.learn_rate = learn_rate
+        self.gd_iterations = gd_iterations
+        self.dropout_p = dropout_p
 
         #bias implementation: ADD COLS of 1 to x, (must stay 1 to relect weight value)
         bias = np.ones((N,1), dtype=float)
@@ -204,18 +234,12 @@ class MLP:
         X = np.append(X, bias, axis=1)
         yh_probs = self.forward_pass(X)         #compute through layers of functions
 
-        #yh = np.argmax(yh_probs, axis = 1, keepdims=True)      #softmax returns probs so much use argmax to get one hot encoding
         def one_hot(row):
             #need to use argmax because it will break ties for us
             prediction_index = np.argmax(row, axis = 0) #get the index of most prob class, axis 0 bc single row
             row.fill(0) #in place set all values to 0
             row[prediction_index] =1
 
-             
-            #prediction_max = np.max(row, axis = 0) #get the index of most prob class, axis 0 bc single row
-            #f = np.vectorize(lambda e : 1 if e == prediction_index else 0) #make element wise, vector ready fun
-            #discrete = lambda e : 1 if e == prediction_index else 0     #e each element
-            # row = np.apply_along_axis(discrete, 0, row) # 0 axis bc single row
             return row
         
         yh =np.apply_along_axis(one_hot, 1, yh_probs)

@@ -19,9 +19,7 @@ class ReLU(ActivationFunction):
         reLU = lambda x: np.maximum(0, x)
         self.function = reLU
         #reLU_der = lambda x: 0 if x < 0 else 1 
-        reLU_der = lambda x: (x > 0) *1  #PROBLEM, should be elementwise
-
-
+        reLU_der = lambda x: (x > 0) *1 # should be elementwise! make sure this is happening
         #for np arrays (bc boolean expressions involving them turned into arrays of values of these expre for els in said array) 
         self.derivative = reLU_der
         #custom weight initialization based on af, V will be rand already
@@ -44,16 +42,18 @@ class LeakyReLU(ActivationFunction):
     def __init__(self, lam=0.2):
         self.function = self.leaky_ReLU
         self.derivative = self.der_leaky_ReLU
+        self.lam = lam
         #custom weight initialization based on af, V will be rand already
         self.param_initializer = lambda V, M_last : V * np.sqrt(2/M_last) #He init for ReLu
         
     #sum compacted, bc always > 0 with min addition
-    def leaky_ReLU(x, lam):                           
-        return np.where(x > 0, x, x * lam)                          
+    def leaky_ReLU(self, x):                           
+        y = np.where(x > 0, x, x * self.lam)                          
+        return y
 
-    def der_leaky_ReLU(x, lam):
-        data = [1 if value>0 else lam for value in x]
-        return np.array(data, dtype=float)
+    def der_leaky_ReLU(self, x):
+        y = np.where((x>0), 1, self.lam)
+        return y
 
 
 #FINAL LAYER: #don't bother with derivatives
@@ -93,4 +93,10 @@ class logistic(ActivationFunction):
 #        y1 = ((x > 0) * x)                                                 
 #        y2 = ((x <= 0) * x * 0.01)                                         
 #        leaky_way2 = y1 + y2  
+
+#    def der_leaky_ReLU(self, x):
+#        y = np.where((x>0), 1, )
+#        data = [1 if value>0 else self.lam for value in x]
+#        return np.array(data, dtype=float)
+
 

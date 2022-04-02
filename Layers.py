@@ -25,12 +25,8 @@ class HiddenLayer():
     def get_output(self, z):
         #compute activation function
         output = self.activation_function(z) #cross mult correct?
-        
-        #self.output = output
-
-        print("Hidden layer output:") #debug
-        print(output)
-
+        #print("Hidden layer output:") #debug
+        #print(output)
         return output 
 
     #function to return the derivative of this layer's activation function computed at z(activation)
@@ -59,8 +55,8 @@ class Edge():
     #z will be X for first input edge
     def get_output(self, z):
         output = z @ self.V  
-        print("Linear layer output:") #debug
-        print(output)
+        #print("Linear layer output:") #debug
+        #print(output)
         return output
 
     #will be W for the final layer
@@ -91,9 +87,8 @@ class OutputLayer():
     # each Yh is dim C x N?
     def get_output(self, z):
         output = self.activation_function(z) 
-        #self.output = output
-        print("Final layer output:")
-        print(output)
+        #print("Final layer output:")
+        #print(output)
         return output 
     
     #cost function passed to constructor
