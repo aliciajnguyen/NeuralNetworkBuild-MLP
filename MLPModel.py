@@ -110,9 +110,7 @@ class MLP:
         print("Activation Functions: ")
         for af in self.activation_functions:
             print(type(af).__name__)
-        print("-------------------------------------")
-    
-    
+
 
     #Compute forward pass
     def forward_pass(self, X):
@@ -195,7 +193,7 @@ class MLP:
 
         #DEBUG
         #Yh = self.forward_pass(X)     
-        #learned_params = self.backward_pass(X, Y, Yh)
+        #learned_params = p.backward_pass(X, Y, Yh)
         
         def gradient(X, Y, params):    
             Yh = self.forward_pass(X)     
@@ -223,7 +221,6 @@ class MLP:
         yh = self.forward_pass(X)               #compute through layers of functions
 
         return yh     
-
 
     def predict(self, X): 
         N,D = X.shape
