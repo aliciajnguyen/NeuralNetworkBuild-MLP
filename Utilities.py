@@ -5,8 +5,16 @@ import numpy as np
 def cat_cross_entropy(Y, Yh):
     return - np.multiply(Yh, np.log(Y)).sum() / Y.shape[0]
 
-
+#vectorized version for softmax + one hot encoding
 def evaluate_acc(y, yh):
+    accuracy = np.sum(np.all(y == yh, axis=1))/y.shape[0]
+    print(f'test accuracy: {accuracy}')
+    return accuracy
+
+#np.sum(np.all(a == b, axis=1))
+
+#NON VECTORIZED VERSION
+def evaluate_accuracy(y, yh):
     accuracy = np.sum(yh == y)/y.shape[0]
     print(f'test accuracy: {accuracy}')
     return accuracy

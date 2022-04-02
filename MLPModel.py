@@ -1,4 +1,5 @@
 import collections
+from multiprocessing import reduction
 import numpy as np
 import GradientDescent as gd
 import Utilities as u
@@ -14,7 +15,7 @@ class MLP:
     #parameter_init_type = "RANDOM" => all parameters initialzed randomly
     #parameter_init_type = "ACTIV_SPEC" => activation specific:  all parameters of an edge initialized based on
     #note to tune these hyper parameters we'll have to create different objects
-    def __init__(self, M, D, C, hidden_activation_func_list, output_activation_func, cost_function = u.cat_cross_entropy, parameter_init_type = "RANDOM"):
+    def __init__(self, M, D, C, hidden_activation_func_list, output_activation_func, cost_function = u.cat_cross_entropy, parameter_init_type = "ACTIV_SPEC"):
         self.M = M     # M =number of hidden units in hidden layers (width)
         self.C = C     # C outputs (number of classes)        
         self.D = D     # D inputs (number of x inputs) CONFUSION WITH N
@@ -155,11 +156,10 @@ class MLP:
         params = list(params)         #params was a deque for efficiency, change back to list
         return params
 
-    def fit(self, X, Y, learn_rate=1, gd_iterations=5, dropout_p=0):
-        N,D = X.shape  #DO AFTER bias addition?
+    def fit(self, X, Y, learn_rate=1, gd_iterations=50, dropout_p=0):
+        N = X.shape[0]
         self.N =N
-        #N = X.shape[0]
- 
+
         #bias implementation: ADD COLS of 1 to x, (must stay 1 to relect weight value)
         bias = np.ones((N,1), dtype=float)
         X = np.append(X, bias, axis=1)
@@ -177,23 +177,47 @@ class MLP:
         optimizer = gd.GradientDescent(learning_rate=learn_rate, max_iters=gd_iterations)
         learned_params = optimizer.run(gradient, X, Y, self.init_params) #pass grad , x, ,y, initial params         
         
-        #MUST DEBUG
-
         #run through layers and set params
-        #for layer in reversed(self.layers):
-        #    if isinstance(layer,l.Edge):
-        #        layer.set_params(learned_params.pop())
+        for layer in reversed(self.layers):
+            if isinstance(layer,l.Edge):
+                layer.set_params(learned_params.pop())
         return self
 
     #returns the PROBABILITIES of classes 
     # (output of softmax rather than one hot encoding)
     def predict_probs(self, X): 
-        yh = self.forward_pass(X)
+        N = X.shape[0]
+        self.N =N
+
+        bias = np.ones((N,1), dtype=float)      #must add bias
+        X = np.append(X, bias, axis=1)
+        yh = self.forward_pass(X)               #compute through layers of functions
+
         return yh     
 
 
     def predict(self, X): 
-        yh = self.forward_pass(X)
-        #softmax returns probs so much use argmax to get one hot encoding
-        yh = np.argmax(yh, axis = 1)
+        N,D = X.shape
+        self.N =N
+
+        bias = np.ones((N,1), dtype=float)      #must add bias
+        X = np.append(X, bias, axis=1)
+        yh_probs = self.forward_pass(X)         #compute through layers of functions
+
+        #yh = np.argmax(yh_probs, axis = 1, keepdims=True)      #softmax returns probs so much use argmax to get one hot encoding
+        def one_hot(row):
+            #need to use argmax because it will break ties for us
+            prediction_index = np.argmax(row, axis = 0) #get the index of most prob class, axis 0 bc single row
+            row.fill(0) #in place set all values to 0
+            row[prediction_index] =1
+
+             
+            #prediction_max = np.max(row, axis = 0) #get the index of most prob class, axis 0 bc single row
+            #f = np.vectorize(lambda e : 1 if e == prediction_index else 0) #make element wise, vector ready fun
+            #discrete = lambda e : 1 if e == prediction_index else 0     #e each element
+            # row = np.apply_along_axis(discrete, 0, row) # 0 axis bc single row
+            return row
+        
+        yh =np.apply_along_axis(one_hot, 1, yh_probs)
+        
         return yh 

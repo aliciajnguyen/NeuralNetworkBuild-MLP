@@ -6,9 +6,9 @@ import ActivationFunctions as af
 
 def experiment4():
     #data
-    x = np.array([[1, 2], [3, 4], [5, 6], [7, 8]]) #each row is an input, so each inner bracket []
+    x = np.array([[1, 2], [3, 4], [2, 1], [5, 6]]) #each row is an input, so each inner bracket []
     # one hot encode : see https://edstem.org/us/courses/18448/discussion/1334861
-    y = np.array([[0, 1, 0], [1, 0, 0], [0, 0, 1], [1, 0, 0]]) #one hot encoding
+    y = np.array([[1, 0, 0], [0, 1, 0], [1, 0, 0], [0, 0, 1]]) #one hot encoding
     # D = 2
     # N = 4
     # M = 2
@@ -28,12 +28,29 @@ def experiment4():
     # fit model 
     model1.fit(x, y)
 
+    yh_probs = model1.predict_probs(x)
     yh = model1.predict(x)
+
+    print(y)
+    print(yh_probs)
+    print(yh)
 
     u.evaluate_acc(y, yh)
 
 
 experiment4()
+
+#no hidden layers test
+def experiment5():
+    #data
+    x = np.array([[1, 2], [3, 4], [2, 1], [5, 6]]) #each row is an input, so each inner bracket []
+    # one hot encode : see https://edstem.org/us/courses/18448/discussion/1334861
+    y = np.array([[1, 0, 0], [0, 1, 0], [1, 0, 0], [0, 0, 1]]) #one hot encoding
+    # D = 2
+    # N = 4
+    # M = 2
+    # C = 3
+
 
 #building the models for task 3-1
 def Task3_1(X, Y):
