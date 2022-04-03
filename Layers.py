@@ -16,6 +16,8 @@ class HiddenLayer():
         #LAYER OUTPUT: h()
         #self.output=  where the output of the activation function stored: activation_function (z)
 
+        self.dropout_prob = None #by default, no dropout
+
         #ACTIVATION FUNCTION
         self.activation_function = activation_function_obj.get_func()
         self.activation_function_der = activation_function_obj.get_deriv()
@@ -33,7 +35,19 @@ class HiddenLayer():
     def get_af_deriv(self,z):
         dh = self.activation_function_der(z)
         return dh #derivative of h(z) aka pder z/pderiv q sl16
-            
+
+    #to implement dropouts if indicated in fit
+    def set_dropout(self, p):
+        self.dropout_prob = p
+    
+    def get_dropout(self):
+        return self.dropout_prob
+    
+
+        #The * unpacks a tuple into multiple input arguments. 
+        # The code is creating a random matrix the same shape as H1 
+        # using the shape attribute (which is a tuple) as the dimension inputs to np.random.rand.
+
 
 #the edge class performs the linear transformations (ie Wv + b)
 # note the input layer to first layer DOES NOT have an edge bc IS an edge
@@ -49,13 +63,13 @@ class Edge():
 
         #PARAMETERS  (dimensions from constructor of MLP)
         #bias addition handled in constructor, V will be W for final edge
-        self.V = np.random.randn(n_in, n_out) * 0.1   #V dim = M x D
+        self.V = np.random.randn(n_in, n_out) #* 0.1   #V dim = M x D
         
     # compute VX + b: z @ V + b, b incorporated into weight and X vector
     #z will be X for first input edge
     def get_output(self, z):
         output = z @ self.V  
-        
+
         #print("Linear layer output:") #debug
         #print(output)
         return output

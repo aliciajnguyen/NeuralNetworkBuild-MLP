@@ -1,5 +1,6 @@
 import collections
 from multiprocessing import reduction
+from winreg import REG_LINK
 import numpy as np
 import GradientDescent as gd
 import Utilities as u
@@ -15,12 +16,11 @@ class MLP:
     #parameter_init_type = "RANDOM" => all parameters initialzed randomly
     #parameter_init_type = "ACTIV_SPEC" => activation specific:  all parameters of an edge initialized based on
     #note to tune these hyper parameters we'll have to create different objects
-    def __init__(self, M, D, C, hidden_activation_func_list, output_activation_func, cost_function = u.cat_cross_entropy, parameter_init_type = "ACTIVATION_SPECIFIC"):
+    def __init__(self, M, D, C, hidden_activation_func_list, output_activation_func, cost_function = u.cat_cross_entropy, parameter_init_type = "RANDOM"):
         self.M = M     # M =number of hidden units in hidden layers (width)
         self.C = C     # C outputs (number of classes)        
         self.D = D     # D inputs (number of x inputs) 
         
-        #for reporting on model
         self.parameter_init_type = parameter_init_type
         self.num_hid_layers = len(hidden_activation_func_list)               
         self.activation_functions = hidden_activation_func_list
@@ -33,9 +33,8 @@ class MLP:
         #num hidden_layers just len of activation_func_list
         #self.learned_params  #what we learn using gradient descent in fit function IF WE DON'T DO STOCHASTIC
         #self.N  = the number of training instances fit to 
-
-        #computed for every activation function layer NOT linear transformation layer (edge)
-        #created with each forward pass
+        #self.dropout_p = list of dropout probabilities for each layer
+        #computed for every activation function layer NOT linear transformation layer (edge), created in forward pass
         #self.activations = [] #a list of activations
 
     #create layer list here for model
@@ -71,16 +70,37 @@ class MLP:
                 hid_layer = l.HiddenLayer(activation_function) 
                 layers_list.append(hid_layer)
 
+                #BY DEFAULT "RANDOM" gives a sampling of gaussian dist (np.random.randn)
                 #now if initialization type is activation specific, ensure weights initialized
                 #based on hidden layer activation function
                 #only gives best initializations for Relu, tanh, and leaky ReLu
                 #note relies on standard width, otherwise change M to M_last
-                if init_type == "ACTIV_SPEC":
+                if init_type == "ACTIVATION_SPECIFIC":
                     params = edge.get_params()
-                    params_custom = activation_function.param_init_by_activ_type(params, Mplusbias)
+                    size_last_layer = Mplusbias if i != 0 else Dplusbias
+                    params_custom = activation_function.param_init_by_activ_type(params, size_last_layer)
                     edge.set_params(params_custom)
-                init_params.append(edge.get_params()) #append params only after they've been modified
-                
+                elif init_type == "AROUND_ZERO":
+                    params = edge.get_params()
+                    params_custom = params * 0.1
+                    edge.set_params(params_custom)
+
+                #BY DEFAULT "RANDOM" gives a sampling of gaussian dist (np.random.randn)
+                #now if initialization type is activation specific, ensure weights initialized
+                #based on hidden layer activation function
+                #only gives best initializations for Relu, tanh, and leaky ReLu
+                #note relies on standard width, otherwise change M to M_last
+                if init_type == "ACTIVATION_SPECIFIC":
+                    params = edge.get_params()
+                    params = params * 0.1
+                    size_last_layer = Mplusbias if i != 0 else Dplusbias
+                    params_custom = activation_function.param_init_by_activ_type(params, size_last_layer)
+                    edge.set_params(params_custom)
+                elif init_type == "AROUND_ZERO":
+                    params = edge.get_params()
+                    params_custom = params * 0.1
+                    edge.set_params(params_custom)
+
                 #create new edge
                 #special case for the edges before the final output layer weight matrix W instead of V
                 edge = l.Edge(Mplusbias, Mplusbias) if i != final_index else l.Edge(Mplusbias, self.C)
@@ -101,7 +121,6 @@ class MLP:
         print(f'Number of Inputs Trained On:  D = {self.D}')
         print(f'Number of Hidden Units:  M = {self.M}')
         print(f'Number of Classes:  C = {self.C}')
-        print(f'Number of Instances Trained On:  N = {self.N}')
         print(f'Parameter Initialization Type:  {self.parameter_init_type}')
         print(f'Gradient Descent Learning Rate: {self.learn_rate}')
         print(f'Gradient Descent Iterations: {self.gd_iterations}')
@@ -113,6 +132,8 @@ class MLP:
 
 
     #Compute forward pass
+    #implement drop outs here! TODO
+    #figure out how to indicate first past is done ? so gradient doesn't just keep dropping more?
     def forward_pass(self, X):
         self.activations = []
         #print("Input to MLP X") #debug forward pass
@@ -121,7 +142,14 @@ class MLP:
         for i,layer in enumerate(self.layers):
             input = X if i == 0 else z # X will be first layer input, otherwise it's the output, z, of last layer            
             z = layer.get_output(input)
-            if isinstance(layer, l.HiddenLayer): self.activations.append(z) #only append these activations z for backprop calc
+            if isinstance(layer, l.HiddenLayer): 
+                dropout_keep_p = layer.get_dropout()            #INVERTED DROPOUT IMPLEMENTATION
+                if dropout_keep_p != None: 
+                    mask = (np.random.rand(*z.shape) < dropout_keep_p) / dropout_keep_p
+                    z *= mask        #apply mask before outputting              
+                    #TODO how does this affect backprop??
+                self.activations.append(z) #only append these activations z for backprop calc, hid layer only
+
         yh = z # last value computed is yh, rename for consistency
         return yh
     
@@ -177,23 +205,36 @@ class MLP:
         params = list(params)         #params was a deque for efficiency, change back to list
         return params
 
+    #a function to update layer parameters such that they know their dropouts probability
+    def set_layer_dropouts(self):
+        dropout_p = self.dropout_p.copy()
+        assert len(self.dropout_p) == self.num_hid_layers   #throw error if mismatch
+        for layer in self.layers:
+            if isinstance(l.HiddenLayer):
+                layer.set_dropout(dropout_p.pop(0))          
+
     #Hyperparameter: dropout_p will be a list of dropout percentages for each layer
+    #dropout_p
+        #dropout rates added here for easy HP tuning (though would have been better for object initialization)
+        #pass a list of len = the the number of hidden layers
+        #eg 2 hidden layer, dropout_p=[0.8, 0.8]
+        #probability of keeping a unit active. higher = less dropout
     def fit(self, X, Y, learn_rate=0.1, gd_iterations=50, dropout_p=None):
-        N = X.shape[0]
-        self.N =N
+        self.N = X.shape[0]
 
         #for printing statistics
         self.learn_rate = learn_rate
         self.gd_iterations = gd_iterations
         self.dropout_p = dropout_p
 
-        #bias implementation: ADD COLS of 1 to x, (must stay 1 to relect weight value)
-        bias = np.ones((N,1), dtype=float)
-        X = np.append(X, bias, axis=1)
+        #if we're using dropout implementation, activate
+        if dropout_p != None:
+            self.set_layer_dropouts()
 
-        #DEBUG
-        #Yh = self.forward_pass(X)     
-        #learned_params = p.backward_pass(X, Y, Yh)
+
+        #bias implementation: ADD COLS of 1 to x, (must stay 1 to relect weight value)
+        bias = np.ones((self.N,1), dtype=float)
+        X = np.append(X, bias, axis=1)
         
         def gradient(X, Y, params):    
             Yh = self.forward_pass(X)     
@@ -214,17 +255,15 @@ class MLP:
     # (output of softmax rather than one hot encoding)
     def predict_probs(self, X): 
         N = X.shape[0]
-        self.N =N
-
+        
         bias = np.ones((N,1), dtype=float)      #must add bias
         X = np.append(X, bias, axis=1)
-        yh = self.forward_pass(X)               #compute through layers of functions
+        yh = self.forward_pass(X) 
 
         return yh     
 
     def predict(self, X): 
-        N,D = X.shape
-        self.N =N
+        N = X.shape[0]
 
         bias = np.ones((N,1), dtype=float)      #must add bias
         X = np.append(X, bias, axis=1)
