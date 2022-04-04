@@ -35,3 +35,15 @@ def prep_pixels(train, test):
 	test_norm = test_norm / 255.0
 	# return normalized images
 	return train_norm, test_norm
+
+def get_prepped_original_data():
+    Xtrain, Ytrain, Xtest, Ytest = load_dataset() # load dataset
+    Xtrain, Xtest = prep_pixels(Xtrain, Xtest) # prepare pixel data
+    #Debug
+    print('Train: X=%s, y=%s' % (Xtrain.shape, Ytrain.shape))
+    print('Test: X=%s, y=%s' % (Xtest.shape, Ytest.shape))
+    print(Xtrain.shape)
+    print(Xtest.shape)
+    return Xtrain, Ytrain, Xtest, Ytest
+
+def get_from_files()

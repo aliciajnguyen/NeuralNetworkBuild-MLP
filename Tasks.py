@@ -4,6 +4,7 @@ import numpy as np
 import MLPModel as model
 import Utilities as u
 import ActivationFunctions as af
+import DataLoad as dl
 
 #TASK 3_1: Varying numbers of depth  layers
 #just pass actualy y, x values
@@ -146,18 +147,28 @@ def task3_4(Xtrain, Xtest, Ytrain, Ytest):
     u.evaluate_acc(Ytest, Yh1)
     #############################################################################
 
-
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #SAMPLE DATA
-Xtrain = np.array([[1, 3, 9], [-1, -4, -2], [5, 7, 1], [0.1, 0.7, 0.4]]) #each row is an input, so each inner bracket []
-# one hot encode : see https://edstem.org/us/courses/18448/discussion/1334861
-Ytrain = np.array([[1, 0, 0], [0, 1, 0], [1, 0, 0], [0, 0, 1]]) #one hot encoding
+def get_sample_data1():
+    Xtrain = np.array([[1, 3, 9], [-1, -4, -2], [5, 7, 1], [0.1, 0.7, 0.4]]) #each row is an input, so each inner bracket []
+    # one hot encode : see https://edstem.org/us/courses/18448/discussion/1334861
+    Ytrain = np.array([[1, 0, 0], [0, 1, 0], [1, 0, 0], [0, 0, 1]]) #one hot encoding
 
-Xtest = np.array([[9, 2, 4],  [-5, -7, -1], [0.2, 0.3, 0.7]])
-Ytest = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    Xtest = np.array([[9, 2, 4],  [-5, -7, -1], [0.2, 0.3, 0.7]])
+    Ytest = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    return Xtrain, Ytrain, Xtest, Ytest
 # D = 2
 # N = 4
 # M = 2
 # C = 3
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#ACTUAL DATA
+Xtrain, Ytrain, Xtest, Ytest = get_sample_data1()()
+Xtrain, Ytrain, Xtest, Ytest = dl.get_prepped_original_data()
+
+
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 task3_1(Xtrain, Xtest, Ytrain, Ytest)
 #task3_2(Xtrain, Xtest, Ytrain, Ytest)
