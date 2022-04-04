@@ -45,5 +45,3 @@ def get_prepped_original_data():
     print(Xtrain.shape)
     print(Xtest.shape)
     return Xtrain, Ytrain, Xtest, Ytest
-
-#def get_from_files()
