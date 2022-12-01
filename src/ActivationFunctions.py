@@ -98,5 +98,3 @@ class logistic(ActivationFunction):
 #        y = np.where((x>0), 1, )
 #        data = [1 if value>0 else self.lam for value in x]
 #        return np.array(data, dtype=float)
-
-

@@ -1,4 +1,5 @@
 #https://colab.research.google.com/drive/1VEYvm4Z2denIM2Gy1j9K7tqmA38zwKaQ#scrollTo=fa3GgubSfY2R
+#TODO - did stochastic gradient descent ever even get implemented?
 import numpy as np
 
 class GradientDescent:
