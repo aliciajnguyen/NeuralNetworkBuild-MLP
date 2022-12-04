@@ -1,4 +1,4 @@
-# NeuralNetworkBuild-MLP-
+# NeuralNetworkBuild-MLP
 
 This was a collaborative project to design a Multilayer Perceptron architecture (MLP), or a shallow feed-forward Neural Network, from scratch solely utilizing 
 the numpy library. We sought a design that was capable of varying the width, number of hidden layers (depth) and type of activation functions. This model was deployed to optimally classify images from the Fashion-MNIST dataset. Experimenting with depth, width, optimization hyperparameters and weight initialization we ultimately achieved an accuracy of 84%. This was accomplished using a 3 hidden layer network with ReLU, Leaky ReLU and tanh activation functions. By varying the number of hidden layers 
