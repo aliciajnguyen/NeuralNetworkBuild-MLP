@@ -6,4 +6,4 @@ we demonstrated that the capacity to model nonlinear functions, as provided by a
 experiments using a pre-built Convolutional Neural Network (CNN), we found that further enhancement of performance was only achieved by utilizing the 
 structure-conscious capacities offered by the convolution layers of a CNN.
 
-![image](https://user-images.githubusercontent.com/52705170/205467701-5bf5872d-e43b-4ec4-bcfa-aa34b7d209a1.png)
+![image](https://user-images.githubusercontent.com/52705170/205467723-f32425b6-33c7-4562-95ac-018dc1c2bf6b.png)
